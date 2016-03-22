@@ -13,8 +13,15 @@ TEMPLATE = app
 
 
 SOURCES += main.cpp\
-        mainwindow.cpp
+        mainwindow.cpp \
+    renderer.cpp
 
-HEADERS  += mainwindow.h
+HEADERS  += mainwindow.h \
+    renderer.h
 
 FORMS    += mainwindow.ui
+
+unix:!macx: LIBS += -L$$PWD/../../../VulkanSDK/1.0.3.1/x86_64/lib/ -lvulkan
+
+INCLUDEPATH += $$PWD/../../../VulkanSDK/1.0.3.1/x86_64/include
+DEPENDPATH += $$PWD/../../../VulkanSDK/1.0.3.1/x86_64/include
