@@ -14,7 +14,7 @@
 #include <vulkan/vulkan.h> // Vulkan API
 
 //Имя нашего приложения. Вывел в глобальные.
-char app_name[] = "Vulkan Tutorian. Layers. © GrWolf.";
+char app_name[] = "Vulkan Tutorian. Layers And Extensions. © GrWolf.";
 
 /* Придётся потихоньку забегать вперёд, ведь сегодня речь пойдёт о fetch-функциях,
  * callback'ах, отладке и так далее.
@@ -26,7 +26,7 @@ VKAPI_ATTR VkBool32 VKAPI_CALL DebugReportCallback(VkDebugReportFlagsEXT,VkDebug
 
 int main()
 {
-	//Прежде всего, настроем вывод.
+	//Настроем вывод.
 	setlocale(LC_ALL, "Russian");
 	//Подготовим данные приложения
 	VkApplicationInfo app_info; 

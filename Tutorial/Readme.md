@@ -6,6 +6,8 @@
 **Vulkan Tutorial** — уроки по Vulkan API, созданные на основе уроков Niko Kauppi: [YouTube][NikoYouTube], [GitHub][NikoGitHub], переведённые на русский. А также добавлена дополнительная информация из [спецификации Vulkan API + WSI][VulkanSpecWSI].
 Уроки представленны в виде наиболее упрощённого, последовательного кода с комментариями-объяснениями. Надеюсь, скучно там не будет!
 
+***Если есть вопросы, вы можете задать их [здесь][GameDevForum] или [здесь][CyberForum].***
+
 
 ## Оглавление
 ### 0Device
@@ -26,3 +28,5 @@
 [VulkanSpecWSI]: https://www.khronos.org/registry/vulkan/specs/1.0-wsi_extensions/pdf/vkspec.pdf "Vulkan API + WSI Specification"
 [NikoGitHub]: https://github.com/Niko40/Vulkan-API-Tutorials "Репозиторий уроков Niko Kauppi на GitHub"
 [NikoYouTube]: https://www.youtube.com/playlist?list=PLUXvZMiAqNbK8jd7s52BIDtCbZnKNGp0P "Плейлист уроков Niko Kauppi на YouTube"
+[GameDevForum]: http://www.gamedev.ru/code/forum/?id=212896 "Тема на форуме GameDev.ru"
+[CyberForum]: http://www.cyberforum.ru/graphics/thread1705765.html "Тема на CyberForum"
