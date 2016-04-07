@@ -274,7 +274,7 @@ int main()
 	 * 
 	 * Самое время включить отладку на полную!
 	*/
-	debug_report_callback_info.flags = VK_DEBUG_REPORT_DEBUG_BIT_EXT;
+	debug_report_callback_info.flags = VK_DEBUG_REPORT_DEBUG_BIT_EXT |
 		VK_DEBUG_REPORT_INFORMATION_BIT_EXT | VK_DEBUG_REPORT_WARNING_BIT_EXT |
 		VK_DEBUG_REPORT_PERFORMANCE_WARNING_BIT_EXT | VK_DEBUG_REPORT_ERROR_BIT_EXT;
 	// Настало время прикрепить наш прототип здесь:
@@ -335,7 +335,7 @@ int main()
 		if (properties.queueFlags & VK_QUEUE_GRAPHICS_BIT)
 		{
 			std::wcout << L"Графику\n";
-			if (valid_family_index == -1)
+			if (valid_family_index == (uint32_t) -1)
 				valid_family_index = i;
 		}
 		if (properties.queueFlags & VK_QUEUE_COMPUTE_BIT)
@@ -511,6 +511,11 @@ VKAPI_ATTR VkBool32 VKAPI_CALL DebugReportCallback(
 {
 	//Сделаем простенький вывод:
 	std::cout << "[" << pLayerPrefix << "] " << pMessage << std::endl;
+	/* По умолчанию мы всегда возвращаем false.
+	 * Если вернуть true, о тогда команда, при котрой возникла ошибка просто не пойдёт дальше (в следующий слой или ядро Vulkan).
+	 * Возвращение false позволяет командам работать дальше.
+	*/ 
+	return false;
 }
 /* Готово. Разобрались. Из-за того, что я пока что не нашёл более полного описания некоторых вещей, туториал не вышел столь
  * подробным, скорлько и предыдущий.

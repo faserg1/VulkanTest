@@ -317,7 +317,7 @@ int main()
 		if (properties.queueFlags & VK_QUEUE_GRAPHICS_BIT)
 		{
 			std::wcout << L"Графику\n";
-			if (valid_family_index == -1)
+			if (valid_family_index == (uint32_t) -1)
 				valid_family_index = i;
 		}
 		if (properties.queueFlags & VK_QUEUE_COMPUTE_BIT)
