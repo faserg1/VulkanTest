@@ -226,7 +226,7 @@ int main()
 	*/
 	
 	VkInstance instance = VK_NULL_HANDLE;
-	res = vkCreateInstance(&instance_info, VK_NULL_HANDLE, &instance);
+	res = vkCreateInstance(&instance_info, NULL, &instance);
 	if (res != VK_SUCCESS) //С проверками особо заморачиваться не будем.
 	{
 		std::wcerr << L"Что-то не так...\n"; 
@@ -286,7 +286,7 @@ int main()
 	*/ 
 	VkDebugReportCallbackEXT debug_report_callback = VK_NULL_HANDLE;
 	//И наконец-таки привзяываем наш Callback:
-	res = fvkCreateDebugReportCallbackEXT(instance, &debug_report_callback_info, VK_NULL_HANDLE, &debug_report_callback);
+	res = fvkCreateDebugReportCallbackEXT(instance, &debug_report_callback_info, NULL, &debug_report_callback);
 	if (res != VK_SUCCESS)
 	{
 		std::wcerr << L"Не удалось создать debug-report callback.\n"; 
@@ -294,7 +294,10 @@ int main()
 	}
 	/* Отлично, мы привязали callback. Он  распространяется по всему Vulkan, поэтому привязывать ещё раз ничего не надо.
 	 * Если быть более точным, то это расширение привязывается к слоям, причём, не каждый слой может поддерживать
-	 * это расширение.
+	 * это расширение. Саму привязку allback'а к слоям можно увидеть в выводе: для каждого слоя будет размещено сообщение
+	 * [DebugReport] Added callback. И да, теоритически, Vulkan Core тоже является слоем, при этом, в любом случае самым
+	 * последним. Мы лишь можем добавить эти слои в середину между нашим приложением и самим ядром Vulkan.
+	 * 
 	 * Теперь пора вновь взяться за создание нашего устройства. Менять ничего не будем, только привяжем новые слои и
 	 * расширения.
 	*/ 
@@ -467,7 +470,7 @@ int main()
 	//Создаём пустой хэндл..
 	VkDevice device = VK_NULL_HANDLE;
 	//Создаём устройство
-	if (vkCreateDevice(gpu, &device_info, VK_NULL_HANDLE, &device) != VK_SUCCESS)
+	if (vkCreateDevice(gpu, &device_info, NULL, &device) != VK_SUCCESS)
 	{
 		std::wcerr << L"Чёрт! А я был так близко...\n";
 		exit(1);
@@ -477,15 +480,15 @@ int main()
 	//*Здесь могла быть ваша реклама* Шучу. Здесь должен быть рендер и т.д.
 	
 	//Разрешаем устройство
-	vkDestroyDevice(device, VK_NULL_HANDLE);
+	vkDestroyDevice(device, NULL);
 	/* Разрушаем связь с Callback.
 	 * Первый параметр — экземпляр.
 	 * Второй — хэндл нашего debug-report callback.
 	 * Третий — управление памятью. Оставим по умолчанию.
 	*/ 
-	fvkDestroyDebugReportCallbackEXT(instance, debug_report_callback, VK_NULL_HANDLE);
+	fvkDestroyDebugReportCallbackEXT(instance, debug_report_callback, NULL);
 	//Разрушаем экземпляр.
-	vkDestroyInstance(instance, VK_NULL_HANDLE);
+	vkDestroyInstance(instance, NULL;
 	std::wcout << L"Пожарено!\n";
 	//Готово. Теперь возвращаемся к функции callback.
 	return 0;

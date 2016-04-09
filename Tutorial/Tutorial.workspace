@@ -3,18 +3,24 @@
   <Project Name="0Device" Path="0Device/0Device.project" Active="No"/>
   <Project Name="1LayersAndExtensions" Path="1LayersAndExtensions/1LayersAndExtensions.project" Active="No"/>
   <Project Name="2Commands" Path="2Commands/2Commands.project" Active="Yes"/>
+  <Project Name="3Sync" Path="3Sync/3Sync.project" Active="No"/>
+  <Project Name="4WSI" Path="4WSI/4WSI.project" Active="No"/>
   <BuildMatrix>
     <WorkspaceConfiguration Name="Debug" Selected="yes">
       <Environment/>
       <Project Name="0Device" ConfigName="Debug"/>
       <Project Name="1LayersAndExtensions" ConfigName="Debug"/>
       <Project Name="2Commands" ConfigName="Debug"/>
+      <Project Name="3Sync" ConfigName="Debug"/>
+      <Project Name="4WSI" ConfigName="Debug"/>
     </WorkspaceConfiguration>
     <WorkspaceConfiguration Name="Release" Selected="yes">
       <Environment/>
       <Project Name="0Device" ConfigName="Release"/>
       <Project Name="1LayersAndExtensions" ConfigName="Release"/>
       <Project Name="2Commands" ConfigName="Release"/>
+      <Project Name="3Sync" ConfigName="Release"/>
+      <Project Name="4WSI" ConfigName="Release"/>
     </WorkspaceConfiguration>
   </BuildMatrix>
 </CodeLite_Workspace>
