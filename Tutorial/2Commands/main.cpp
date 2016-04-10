@@ -121,7 +121,7 @@ int main()
 	*/ 
 	pool_create_info.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
 	//Создаём пул
-	VkCommandPool pool;
+	VkCommandPool pool = VK_NULL_HANDLE;
 	if (vkCreateCommandPool(vkGlobals.device, &pool_create_info, NULL, &pool) != VK_SUCCESS)
 		return 4;
 	/* Дальше расскажу немного про функцию vkResetCommandPool, которая перезагрузит весь наш пул со всеми его буферами.
@@ -366,7 +366,7 @@ bool InitDevice()
 	VkDeviceCreateInfo device_info; 
     ZM(device_info);
 	device_info.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO; 
-	device_info.queueCreateInfoCount = 1; 
+	device_info.queueCreateInfoCount = 1;
 	device_info.pQueueCreateInfos = &device_queue_info;
 	device_info.enabledLayerCount = vkGlobals.device_layers.size();
 	device_info.ppEnabledLayerNames = vkGlobals.device_layers.data();

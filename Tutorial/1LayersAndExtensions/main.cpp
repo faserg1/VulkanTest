@@ -488,7 +488,7 @@ int main()
 	*/ 
 	fvkDestroyDebugReportCallbackEXT(instance, debug_report_callback, NULL);
 	//Разрушаем экземпляр.
-	vkDestroyInstance(instance, NULL;
+	vkDestroyInstance(instance, NULL);
 	std::wcout << L"Пожарено!\n";
 	//Готово. Теперь возвращаемся к функции callback.
 	return 0;
