@@ -1,26 +1,32 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <CodeLite_Workspace Name="Tutorial" Database="">
-  <Project Name="0Device" Path="0Device/0Device.project" Active="No"/>
-  <Project Name="1LayersAndExtensions" Path="1LayersAndExtensions/1LayersAndExtensions.project" Active="No"/>
-  <Project Name="2Commands" Path="2Commands/2Commands.project" Active="No"/>
-  <Project Name="3Sync" Path="3Sync/3Sync.project" Active="Yes"/>
-  <Project Name="4WSI" Path="4WSI/4WSI.project" Active="No"/>
+  <Project Name="00Device" Path="00Device/00Device.project" Active="No"/>
+  <Project Name="01LayersAndExtensions" Path="01LayersAndExtensions/01LayersAndExtensions.project" Active="No"/>
+  <Project Name="02Commands" Path="02Commands/02Commands.project" Active="No"/>
+  <Project Name="03Sync" Path="03Sync/03Sync.project" Active="No"/>
+  <Project Name="04WSI" Path="04WSI/04WSI.project" Active="Yes"/>
+  <Project Name="05Allocation" Path="05Allocation/05Allocation.project" Active="No"/>
+  <Project Name="06ResourceCreation" Path="06ResourceCreation/06ResourceCreation.project" Active="No"/>
   <BuildMatrix>
     <WorkspaceConfiguration Name="Debug" Selected="yes">
       <Environment/>
-      <Project Name="0Device" ConfigName="Debug"/>
-      <Project Name="1LayersAndExtensions" ConfigName="Debug"/>
-      <Project Name="2Commands" ConfigName="Debug"/>
-      <Project Name="3Sync" ConfigName="Debug"/>
-      <Project Name="4WSI" ConfigName="Debug"/>
+      <Project Name="00Device" ConfigName="Debug"/>
+      <Project Name="01LayersAndExtensions" ConfigName="Debug"/>
+      <Project Name="02Commands" ConfigName="Debug"/>
+      <Project Name="03Sync" ConfigName="Debug"/>
+      <Project Name="04WSI" ConfigName="Debug"/>
+      <Project Name="05Allocation" ConfigName="Debug"/>
+      <Project Name="06ResourceCreation" ConfigName="Debug"/>
     </WorkspaceConfiguration>
     <WorkspaceConfiguration Name="Release" Selected="yes">
       <Environment/>
-      <Project Name="0Device" ConfigName="Release"/>
-      <Project Name="1LayersAndExtensions" ConfigName="Release"/>
-      <Project Name="2Commands" ConfigName="Release"/>
-      <Project Name="3Sync" ConfigName="Release"/>
-      <Project Name="4WSI" ConfigName="Release"/>
+      <Project Name="00Device" ConfigName="Release"/>
+      <Project Name="01LayersAndExtensions" ConfigName="Release"/>
+      <Project Name="02Commands" ConfigName="Release"/>
+      <Project Name="03Sync" ConfigName="Release"/>
+      <Project Name="04WSI" ConfigName="Release"/>
+      <Project Name="05Allocation" ConfigName="Release"/>
+      <Project Name="06ResourceCreation" ConfigName="Release"/>
     </WorkspaceConfiguration>
   </BuildMatrix>
 </CodeLite_Workspace>

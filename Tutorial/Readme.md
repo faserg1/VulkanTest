@@ -3,30 +3,32 @@
 
 ## Описание
 
-**Vulkan Tutorial** — уроки по Vulkan API, созданные на основе уроков Niko Kauppi: [YouTube][NikoYouTube], [GitHub][NikoGitHub], переведённые на русский. А также добавлена дополнительная информация из [спецификации Vulkan API + WSI][VulkanSpecWSI]. Также, мне помогли [уроки Intel][IntelVulkanTutorial].
+**Vulkan Tutorial** — уроки по Vulkan API, созданные на основе уроков Niko Kauppi: [YouTube][NikoYouTube], [GitHub][NikoGitHub], переведённые на русский. А также добавлена дополнительная информация из [спецификации Vulkan API + WSI][VulkanSpecWSI]. Также, мне помогли уроки от [Intel][IntelVulkanTutorial] ([GameTechDev][GameTechDevTutorial]).
 Уроки представленны в виде наиболее упрощённого, последовательного кода с комментариями-объяснениями. Надеюсь, скучно там не будет!
 
 ***Если есть вопросы, вы можете задать их [здесь][GameDevForum] или [здесь][CyberForum].***
 
 
 ## Оглавление
-### 0Device
+### 00Device
 Урок посвящён созданию экземпляра (instance) Vulkan и логического устройста (device). Урок является основами Vulkan и не посвящён созданию окон, отрисовки и так далее. 
-### 1LayersAndExtensions
+### 01LayersAndExtensions
 Урок посвящён тематике слоёв и расширений. Здесь поясняется, зачем они нужны и как их использовать. Также, урок демонстрирует, как можно отслеживать ошибки в Vulkan.
-### 2Commands
+### 02Commands
 Урок посвящён очередям, в небольшом счёте конфейеру Vulkan, командным буферам и самим командам. Урок теоретический, и в нём не будет рассказываться о каждой команде или о какой-либо команде вообще — о каждой команде подробно можно будет ознакомиться в последующих уроках.
-### 3Sync (Work In Progress)
+### 03Sync
 Урок посвящён синхронизации между CPU и GPU, а также синхронизации внутри самой GPU. Будет расказно подробно о заборах, семафорах, барьерах и событиях, а также подробнее раскроются обычные функции синхронизации.
-### 4WSI (Coming soon)
+### 04WSI
 Урок будет посвящён расширению VK_KHR_surface, привязкой поверхности к окну, а также swapchain.
+### 05Allocation
+Урок посвящён настройке произвольному выделению памяти.
+### 06ResourceCreation (Coming soon)
+Урок рассказывает о создании различных ресурсов Vulkan: Bufffer & Image.
 
-Вы можете поддержать меня денюжкой ;D
+Вы можете поддержать меня
 ======================================
-Например, с помощью [Я.Денег](https://money.yandex.ru/to/410012557544062).
-
-
-
+С помощью [Я.Денег](https://money.yandex.ru/to/410012557544062).
+Группа [DARTeamVK][DARTeam].
 
 
 [VulkanSpecWSI]: https://www.khronos.org/registry/vulkan/specs/1.0-wsi_extensions/pdf/vkspec.pdf "Vulkan API + WSI Specification"
@@ -35,3 +37,5 @@
 [GameDevForum]: http://www.gamedev.ru/code/forum/?id=212896 "Тема на форуме GameDev.ru"
 [CyberForum]: http://www.cyberforum.ru/graphics/thread1705765.html "Тема на CyberForum"
 [IntelVulkanTutorial]: https://software.intel.com/en-us/api-without-secrets-introduction-to-vulkan-part-1 "Уроки Vulkan от Intel"
+[GameTechDevTutorial]: https://github.com/GameTechDev/IntroductionToVulkan "Уроки Vulkan от Intel — GitHub"
+[DARTeamVK]: http://vk.com/dev.ani.resu.team "Группа в ВКонтакте"
