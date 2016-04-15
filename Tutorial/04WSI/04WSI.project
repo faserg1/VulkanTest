@@ -30,6 +30,7 @@
     <File Name="Window.cpp"/>
     <File Name="Application.h"/>
     <File Name="Application.cpp"/>
+    <File Name="platform.h"/>
   </VirtualDirectory>
   <Settings Type="Executable">
     <GlobalSettings>

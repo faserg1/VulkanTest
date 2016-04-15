@@ -2,6 +2,7 @@
 #define APPLICATION_H
 
 #if defined(_WIN32)
+#undef _WIN32_WINNT
 #define _WIN32_WINNT 0x0601 //Windows 7
 #include <windows.h>
 #endif

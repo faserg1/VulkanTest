@@ -141,12 +141,13 @@ int main()
 	
 	/* Пару слов о том, как выбираются слои:
 	 * После того, как я поставил новый Vulkan API SDK, появились новые слои, и появились изменения.
-	 * Например, теперь я должен писать не LUNARG_threading, а GOOGLE_threading. Если что — откоментируйте
-	 * то, что нужно, закомментируйте ненужное.
+	 * Например, теперь я должен писать не LUNARG_threading, а GOOGLE_threading.
+	 * Так что, чтобы не было проблем с версиями, лучше поставить сейчас VK_LAYER_LUNARG_standard_validation,
+	 * но можете попробовать и по другому: ниже закоментированная область работала для 1.0.5.
 	*/
-	
+	instance_layers.push_back("VK_LAYER_LUNARG_standard_validation");
+	/*
 	instance_layers.push_back("VK_LAYER_GOOGLE_threading");
-	//instance_layers.push_back("VK_LAYER_LUNARG_threading");
 	instance_layers.push_back("VK_LAYER_LUNARG_param_checker");
 	instance_layers.push_back("VK_LAYER_LUNARG_device_limits");
 	instance_layers.push_back("VK_LAYER_LUNARG_object_tracker");
@@ -155,6 +156,7 @@ int main()
 	instance_layers.push_back("VK_LAYER_LUNARG_draw_state");
 	instance_layers.push_back("VK_LAYER_LUNARG_swapchain");
 	instance_layers.push_back("VK_LAYER_GOOGLE_unique_objects");
+	*/
 	
 	
 	//И затем отправим их в стурктуру с информацией.
