@@ -21,6 +21,7 @@ public:
 	~Logger();
 	
 	void Init(VkInstance instance);
+	void UserLog(const char *tag, const char *msg);
 	
 	bool AttachLogger(VkInstance instance);
 	void DetachLogger(VkInstance instance);

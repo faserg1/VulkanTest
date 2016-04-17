@@ -8,3 +8,7 @@ Window::~Window()
 {
 }
 
+HWND Window::GetHandle()
+{
+	return hWnd;
+}

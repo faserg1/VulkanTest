@@ -17,6 +17,9 @@ public:
 	Window();
 	~Window();
 	
+	#if defined(_WIN32)
+	HWND GetHandle();
+	#endif
 };
 
 #endif // WINDOW_H

@@ -93,11 +93,19 @@ std::wstring tows(std::string str)
 Window *Application::CreateAppWindow(uint32_t sizeX, uint32_t sizeY)
 {
 	#if defined(_WIN32)
-	HWND temp = CreateWindowExW(WS_EX_APPWINDOW | WS_EX_WINDOWEDGE,
+	//Стили окна
+	DWORD style, ex_style;
+	style = WS_OVERLAPPEDWINDOW;
+	ex_style = WS_EX_APPWINDOW | WS_EX_WINDOWEDGE;
+	RECT wr = { 0, 0, LONG(sizeX), LONG(sizeY) };
+	//Добавим размеры границ, чтобы sizeX, sizeY стали размерами дочерней области (области рисования, а не всего окна)
+	AdjustWindowRectEx(&wr, style, FALSE, ex_style);
+	HWND temp = CreateWindowExW(ex_style,
 		L"cls_vk_tutorial", tows(this->app_name).c_str(),
-		WS_OVERLAPPEDWINDOW,
+		style,
 		CW_USEDEFAULT, CW_USEDEFAULT,
-		sizeX, sizeY,
+		wr.right - wr.left,
+		wr.bottom - wr.top,
 		NULL, NULL, hInst, NULL);
 	if (temp)
 	{
@@ -106,6 +114,7 @@ Window *Application::CreateAppWindow(uint32_t sizeX, uint32_t sizeY)
 		SetFocus(temp);
 		Window *w = new Window;
 		w->hWnd = temp;
+		return w;
 	}
 	#endif
 	return NULL;
@@ -121,6 +130,11 @@ void Application::DestroyAppWindow(Window **w)
 std::string Application::GetAppName()
 {
 	return app_name;
+}
+
+HINSTANCE Application::GetHandle()
+{
+	return hInst;
 }
 
 #if defined(_WIN32)

@@ -109,6 +109,14 @@ bool Logger::Log(VkDebugReportFlagsEXT flags, const char *pLayerPrefix, const ch
 	return false;
 }
 
+void Logger::UserLog(const char *tag, const char *msg)
+{
+	SetColor(COLOR_GREEN);
+	std::cout << "[" << tag << "] " << msg << std::endl;
+	file << "[" << tag << "] " << msg << std::endl;
+	SetDefaultColor();
+}
+
 bool Logger::AttachLogger(VkInstance instance)
 {
 	VkDebugReportCallbackCreateInfoEXT debug_report_callback_info;

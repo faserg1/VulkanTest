@@ -24,6 +24,9 @@ public:
 	void DestroyAppWindow(Window **w);
 	bool Loop();
 	std::string GetAppName();
+	#if defined(_WIN32)
+	HINSTANCE GetHandle();
+	#endif
 };
 
 #endif // APPLICATION_H

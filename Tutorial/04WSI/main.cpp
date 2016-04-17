@@ -17,11 +17,11 @@
 
 int main()
 {
+	setlocale(LC_ALL, "Russian");
 	Application app("Vulkan Tutorian. WSI. (copyleft) GrWolf.");
 	if (!app.InitApplication()) //Инициализация приложения
 		return -1;
 	Window *w = app.CreateAppWindow(512, 512); //создание окна
-	
 	Render r; //объект, отвечающий за отрисовку
 	Logger logger; //логгер, отвечает за вывод на экран и в файл сообщения Vulkan
 	r.EnableDebug(true); //включение отладки
@@ -33,21 +33,70 @@ int main()
 	*/ 
 	if (!r.EnableSurface(true))
 	{
+		r.DestroyInstance();
+		app.DestroyAppWindow(&w);
+		app.DeinitApplication();
 		return -1; //
 	}
 	r.CreateInstance(app.GetAppName()); //создание экземпляра
 	logger.Init(r.GetInstance()); //инициализация (получение Vulkan функций)
 	logger.AttachLogger(r.GetInstance()); //присоединение callback
-	r.FindGPU(); //поиск GPU
-	r.CreateDevice(); //создание устройства
-	
+	/* Хорошо, мы создали Instance с нужными расширениями и подготовили его к работе. Теперь можно получить нашу плоскость.
+	 * Но всё это будет немного скрыто в рамки класса, чтобы можно было сделать код максимально портитивный под разные платформы.
+	*/
+	if (!r.CreateSurface(&app, w))
+	{
+		logger.DetachLogger(r.GetInstance());
+		r.DestroySurface();
+		r.DestroyInstance();
+		app.DestroyAppWindow(&w);
+		app.DeinitApplication();
+		return -1;
+	}
+	/* Всё, теперь эту плоскость можно использовать в SwapChain'ах. Но перед этим нужно добавить специальные расширения
+	 * и подкотовить устройство, а также проверить его на совместимость с нашей оконной системой.
+	 * Для начала подготовим и найдём подходящее устройство:
+	*/
+	r.PrepareGPU(); //поиск и подготовка GPU для VkDevice
+	//Затем подключим необходимые расширения, подготвим swapchain и создадим устройство.
+	if (!(r.EnableSwapchains(true) && r.PrepareSwapchain() && r.CreateDevice()))
+	{
+		logger.DetachLogger(r.GetInstance());
+		r.DestroySurface();
+		r.DestroyInstance();
+		app.DestroyAppWindow(&w);
+		app.DeinitApplication();
+		return -1;
+	}
+	/* После того, как мы создали устройство, теперь можно и создать для него swapchain'ы. Конечно же, их может быть несколько,
+	 * если вы собираетесь рисовать в различные окна с одного устройства (Vulkan даже поможет в этом деле своими командными
+	 * буферами, так как можно рисовать не один за другим, а несколько сразу, главное — правильно всё настроить).
+	 * Но с цепочкой переключений всё немного сложнее: как только плоскость, которую она использует, приходит в негодность,
+	 * swapchain необходимо пересоздать (если такое возможно и необходмо). В противном случае отображение нового кадра
+	 * приведёт к ошибке.
+	*/
+	if (!r.CreateSwapchain())
+	{
+		r.DestroyDevice();
+		logger.DetachLogger(r.GetInstance());
+		r.DestroySurface();
+		r.DestroyInstance();
+		app.DestroyAppWindow(&w);
+		app.DeinitApplication();
+		return -1;
+	}
+	/* Теперь бы самое время сделать простой Clear Screen... Но отложим это на один из следующих уроков.
+	 * А пока, наслаждаемся тем, что есть.
+	*/ 
 	while (!app.Loop())
 	{
 		
 	}
 	
+	r.DestroySwapchain();
 	r.DestroyDevice();
 	logger.DetachLogger(r.GetInstance());
+	r.DestroySurface();
 	r.DestroyInstance();
 	app.DestroyAppWindow(&w);
 	app.DeinitApplication();

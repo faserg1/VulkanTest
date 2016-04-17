@@ -4,9 +4,9 @@
   <Project Name="01LayersAndExtensions" Path="01LayersAndExtensions/01LayersAndExtensions.project" Active="No"/>
   <Project Name="02Commands" Path="02Commands/02Commands.project" Active="No"/>
   <Project Name="03Sync" Path="03Sync/03Sync.project" Active="No"/>
-  <Project Name="04WSI" Path="04WSI/04WSI.project" Active="Yes"/>
+  <Project Name="04WSI" Path="04WSI/04WSI.project" Active="No"/>
   <Project Name="05Allocation" Path="05Allocation/05Allocation.project" Active="No"/>
-  <Project Name="06ResourceCreation" Path="06ResourceCreation/06ResourceCreation.project" Active="No"/>
+  <Project Name="06ResourceCreation" Path="06ResourceCreation/06ResourceCreation.project" Active="Yes"/>
   <BuildMatrix>
     <WorkspaceConfiguration Name="Debug" Selected="yes">
       <Environment/>
