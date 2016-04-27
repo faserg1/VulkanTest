@@ -3,7 +3,8 @@
 
 ## Описание
 
-**Vulkan Tutorial** — уроки по Vulkan API, созданные на основе уроков Niko Kauppi: [YouTube][NikoYouTube], [GitHub][NikoGitHub], переведённые на русский. А также добавлена дополнительная информация из [спецификации Vulkan API + WSI][VulkanSpecWSI]. Также, мне помогли уроки от [Intel][IntelVulkanTutorial] ([GameTechDev][GameTechDevTutorial]).
+**Vulkan Tutorial** — уроки по Vulkan API, созданные на основе уроков Niko Kauppi: [YouTube][NikoYouTube], [GitHub][NikoGitHub], переведённые на русский. А также добавлена дополнительная информация из [спецификации Vulkan API + WSI][VulkanSpecWSI]. Кстати, уже есть [перевод спецификации][SpecTranslate].
+Также, мне помогли уроки от [Intel][IntelVulkanTutorial] ([GameTechDev][GameTechDevTutorial]).
 Уроки представленны в виде наиболее упрощённого, последовательного кода с комментариями-объяснениями. Надеюсь, скучно там не будет!
 
 ***Если есть вопросы, вы можете задать их [здесь][GameDevForum] или [здесь][CyberForum].***
@@ -51,3 +52,4 @@ HKEY_LOCAL_MACHINE\SOFTWARE\Khronos\Vulkan\ImplicitLayers (для неявных
 [IntelVulkanTutorial]: https://software.intel.com/en-us/api-without-secrets-introduction-to-vulkan-part-1 "Уроки Vulkan от Intel"
 [GameTechDevTutorial]: https://github.com/GameTechDev/IntroductionToVulkan "Уроки Vulkan от Intel — GitHub"
 [DARTeamVK]: http://vk.com/dev.ani.resu.team "Группа в ВКонтакте"
+[SpecTranslate]: http://vbomesh.blogspot.ru/p/vulkan-api.html "Перевод спецификации Vulkan API"

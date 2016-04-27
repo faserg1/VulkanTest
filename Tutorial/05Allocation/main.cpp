@@ -14,7 +14,15 @@
 #include <cstdlib> //exit
 #include <vulkan/vulkan.h> //Vulkan SDK
 
-/* Для начала объявим класс, который будет заниматься всем управлением. Это может быть конечно же не класс, а просто
+#define ZM(what) memset(&what, 0, sizeof(what))
+
+/* Начнём с контроля хост-памяти. Если вы желаете, чтобы ваша память выделялась по особому, или вы просто
+ * хотите контролировать её выделение — можно создать специальный контроллер (или просто функции), которые будут
+ * запрашивать память, и передавать дополнительную информацию. К слову говоря, вы можете выделить какой-то участок
+ * памяти заранее, и уже там отправлять отдельные кусочки этой памяти в Vulkan. Тем не менее, есть места, где вы
+ * таким образом не сможете управлять памятью, так как этим занимается Vulkan Loader.
+ * 
+ * Для начала объявим класс, который будет заниматься всем управлением. Это может быть конечно же не класс, а просто
  * отдельные функции.
 */
 class MemoryController;
@@ -82,7 +90,7 @@ class MemoryController
 	//Далее сами функции логгирования:
 	void log(size_t size, size_t align, VkSystemAllocationScope scope)
 	{
-		std::wcout << L"Память выделена.\n";
+		std::wcout << L"Память выделена с размером " << size << L" байт.\n";
 		log_scope(scope);
 	}
 	void log_free()
@@ -204,22 +212,266 @@ public:
 		callbacks.pfnInternalAllocation = (PFN_vkInternalAllocationNotification) mc_ialloc;
 		callbacks.pfnInternalFree = (PFN_vkInternalFreeNotification) mc_ifree;
 	}
-}; 
+};
 
-//А теперь проверим работу:
+//Функция для красоты консоли
+void PrintDelimiter(uint8_t width, char c = '=')
+{
+	for (uint8_t delimeter_i = 0; delimeter_i < (width); delimeter_i++)
+	{
+		std::cout << c;
+	}
+	std::cout << "\n";
+}
+
+//Функция создания логического устройства
+bool CreateDevice(VkPhysicalDevice gpu, uint32_t &fam_index, VkDevice &device)
+{
+	//Поиск семейств
+	uint32_t family_count = 0;
+	vkGetPhysicalDeviceQueueFamilyProperties(gpu, &family_count, VK_NULL_HANDLE);
+	std::vector<VkQueueFamilyProperties> family_properties_list(family_count);
+	vkGetPhysicalDeviceQueueFamilyProperties(gpu, &family_count, family_properties_list.data());
+	uint32_t valid_family_index = (uint32_t) -1;
+	for (uint32_t i = 0; i < family_count; i++)
+	{
+		VkQueueFamilyProperties &properties = family_properties_list[i];
+		if (properties.queueFlags & VK_QUEUE_GRAPHICS_BIT)
+		{
+			if (valid_family_index == (uint32_t) -1)
+				valid_family_index = i;
+		}
+	}
+	if (valid_family_index == (uint32_t) -1)
+	{
+		std::wcerr << L"Подходящее семейство не найдено.\n";
+		return false;
+	}
+	
+	fam_index = valid_family_index;
+	
+	//Настройка очередей
+	VkDeviceQueueCreateInfo device_queue_info;
+	ZM(device_queue_info);
+	device_queue_info.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
+	float device_queue_priority[] = {1.0f};
+	device_queue_info.queueCount = 1; 
+	device_queue_info.queueFamilyIndex = valid_family_index; 
+	device_queue_info.pQueuePriorities = device_queue_priority;
+	
+	//Настройка девайса
+	VkDeviceCreateInfo device_info; 
+    ZM(device_info);
+	device_info.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO; 
+	device_info.queueCreateInfoCount = 1;
+	device_info.pQueueCreateInfos = &device_queue_info;
+	device_info.enabledLayerCount = 0;
+	device_info.ppEnabledLayerNames = 0;
+	device_info.enabledExtensionCount = 0;
+	device_info.ppEnabledExtensionNames = 0;
+	
+	//Создание девайса
+	if (vkCreateDevice(gpu, &device_info, NULL, &device) != VK_SUCCESS)
+	{
+		std::wcerr << L"Создать устройство не удалось.\n";
+		return false;
+	}
+	return true;
+} 
+
+//Проверим работу контроллера:
+bool MemoryHost()
+{
+	MemoryController controller; //создадим контроллер памяти
+	VkInstanceCreateInfo instance_info; //информация о экзмепляре
+	ZM(instance_info);
+	instance_info.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
+	VkInstance instance = VK_NULL_HANDLE;
+	//создаём экземпляр с нашими callback'ами
+	auto ret = vkCreateInstance(&instance_info, controller.GetCallbacks(), &instance);
+	if (ret != VK_SUCCESS)
+		return false;
+	//уничтожаем экземпляр, также отправляя наши callback'и
+	vkDestroyInstance(instance, controller.GetCallbacks());
+	//работает нормально.
+	return true; 
+}
+
+/* Теперь поговорим о памяти устройства. Vulkan позволяет контроллировать память устройства. Хотя, слово "позволяет"
+ * здесь вписывается слабо: вам придётся её контроллировать. Для того, чтобы вы могли использовать ресурсы (такие, как
+ * буферы и изображения), вам придётся запросить у устройства память для них, а потом привязать эту память к вашим ресурсам.
+ * Забегая вперёд, скажу, что вы сначала создаёте виртуальный ресурс, который не может ничего в себе содержать до привязки к
+ * памяти, и вы должны спросить, какие требования у него есть к памяти, и потом выдать необходимую память.
+ * 
+ * Так что в этом случае вы разберёмся с памятью устройства.
+*/
+
+#define SIZE_B(size) (size)
+#define SIZE_KB(size) ((SIZE_B(size))/1024)
+#define SIZE_MB(size) ((SIZE_KB(size))/1024)
+#define SIZE_GB(size) ((SIZE_MB(size))/1024)
+
+#define SIZE_B_FROM(size) (size)
+#define SIZE_KB_FROM(size) (SIZE_B_FROM(size)*1024)
+#define SIZE_MB_FROM(size) (SIZE_KB_FROM(size)*1024)
+#define SIZE_GB_FROM(size) (SIZE_MB_FROM(size)*1024)
+
+bool MemoryDevice()
+{
+	VkInstanceCreateInfo instance_info; //информация о экзмепляре
+	ZM(instance_info);
+	instance_info.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
+	VkInstance instance = VK_NULL_HANDLE;
+	auto ret = vkCreateInstance(&instance_info, NULL, &instance);
+	if (ret != VK_SUCCESS)
+		return false;
+	//Первым делом, посмотрим список физических устройств, а также свойства их памяти.
+	std::vector<VkPhysicalDevice> gpu_list;
+	uint32_t gpu_count = 0;
+	if (vkEnumeratePhysicalDevices(instance, &gpu_count, nullptr) != VK_SUCCESS)
+        return false;
+    gpu_list.resize(gpu_count);
+    if (vkEnumeratePhysicalDevices(instance, &gpu_count, gpu_list.data()) != VK_SUCCESS)
+        return false;
+	std::wcout << L"Найдено " << gpu_list.size() << L" видеокарт.\n";
+	//Заранее объявим переменные выбранного утройства
+	VkPhysicalDevice gpu;
+	VkPhysicalDeviceMemoryProperties memory_properties_choosed;
+	uint32_t mem_type_index = -1;
+	uint32_t mem_type_index_host = -1;
+	//Листаем все Gpu
+	for (size_t gpu_index = 0; gpu_index < gpu_list.size(); gpu_index++)
+	{
+		std::wcout << L">>> Смотрим информацию о видеокарте с индексом " << gpu_index << L".\n";
+		VkPhysicalDeviceMemoryProperties memory_properties;
+		uint32_t mem_type_index_local = -1;
+		uint32_t mem_type_index_host_local = -1;
+		vkGetPhysicalDeviceMemoryProperties(gpu_list[gpu_index], &memory_properties);
+		/* В структуре можно найти информацию о кучах (heap) и типах памяти.
+		 * Кучи бывают разные, но в основном их не так много.
+		*/
+		std::wcout << L"В видеокарте " << memory_properties.memoryHeapCount << L" куч.\n";
+		for (uint32_t heap_index = 0; heap_index < memory_properties.memoryHeapCount; heap_index++)
+		{
+			PrintDelimiter(80/4, '+');
+			VkMemoryHeap &heap = memory_properties.memoryHeaps[heap_index];
+			std::wcout << L"В куче " << heap_index << L".\n";
+			uint32_t bytes = SIZE_B(heap.size);
+			//uint32_t kbytes = SIZE_KB(heap.size);
+			uint32_t mbytes = SIZE_MB(heap.size);
+			uint32_t gbytes = SIZE_GB(heap.size);
+			std::wcout << L"Размер кучи " << bytes << L" байт (т.е. "<< mbytes << L" мегабайт, или " <<
+				gbytes << L" гигабайт).\n";
+			/* Локальная память устройства отличается от памяти хоста по характеристикам производительности.
+			 * Так что если здесь нет такого флага — скорее всего это память хоста, которая дополнительно
+			 * используется устройством.
+			*/
+			if (heap.flags & VK_MEMORY_HEAP_DEVICE_LOCAL_BIT)
+				std::wcout << L"Это локальная память устройства.\n";
+			PrintDelimiter(80/4, '+');
+		} //heap
+		std::wcout << L"В видеокарте " << memory_properties.memoryTypeCount << L" типов памяти.\n";
+		for (uint32_t type_index = 0; type_index < memory_properties.memoryTypeCount; type_index++)
+		{
+			PrintDelimiter(80/4, '*');
+			VkMemoryType &type = memory_properties.memoryTypes[type_index];
+			std::wcout << L"В типе " << type_index << L".\n";
+			std::wcout << L"Использует кучу с индексом " << type.heapIndex << L".\n";
+			if (type.propertyFlags == 0)
+			{
+				/* Обычно это некэшированная память хоста.
+				*/ 
+				std::wcout << L"Это обычная память.\n";
+			}
+			if (type.propertyFlags & VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT)
+			{
+				/* Если тип имеет такой флаг, то это наиболее подходящий по производительности вариант, так
+				 * как находится прямо в устройстве.
+				*/ 
+				std::wcout << L"Это локальная память устройства.\n";
+				//сохраним этот тип памяти
+				mem_type_index_local = type_index;
+			}
+			if (type.propertyFlags & VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT)
+			{
+				/* Такую память можно прочитать с хоста (управлять ей полностью вручную).
+				 * О том, как это делается, будет показано позже.
+				*/ 
+				std::wcout << L"Эта память просматриваемая для хоста.\n";
+				mem_type_index_host_local = type_index;
+			}
+			if (type.propertyFlags & VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)
+			{
+				/* В этом случае, команды контроля кэша на хосте vkFlushMappedMemoryRanges и vkInvalidateMappedMemoryRanges
+				 * не обязаны делать записи хоста видимыми для устройства и записи устройства видимыми для хоста, соответсвенно.
+				 * Т.е. все данные скрыты памяти скрыты друг от друга.
+				*/ 
+				std::wcout << L"Это память привязана к хосту.\n";
+			}
+			if (type.propertyFlags & VK_MEMORY_PROPERTY_HOST_CACHED_BIT)
+			{
+				/* Вся память, созданная с этим типом кэшируется на хосте. Нужна для ускореня запросов к памяти,
+				 * так как запросы к некэшуремой памяти медленней, чем к кэшированной. Так или иначе, нэкэшированная память
+				 * привязана к хосту.
+				*/ 
+				std::wcout << L"Это память кэшируется на хосте.\n";
+			}
+			if (type.propertyFlags & VK_MEMORY_PROPERTY_LAZILY_ALLOCATED_BIT)
+			{
+				/* Этот тип памяти доступен только устойсства, поэтому он не может содержать также флаг
+				 * VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT (так как это протеворечие).
+				*/ 
+				std::wcout << L"Это приватная память устройства.\n";
+			}
+			PrintDelimiter(80/4, '*');
+		} //type
+		PrintDelimiter(80, '-');
+		/* А теперь пора создать наше устройство.
+		 * Тем не менее, в будущем нам обязательно пригодится структура с данными о памяти, хоть и не сейчас.
+		 * Предстваим, что нам нужно взять локальну память устройства. Переменная mem_type_index_local уже хранит нужный индекс,
+		 * и если всё правильно, то мы его заберём вместе с физическим устройством и другими данными.
+		*/
+		if (mem_type_index_local != -1)
+		{
+			gpu = gpu_list[gpu_index];
+			memory_properties_choosed = memory_properties;
+			mem_type_index = mem_type_index_local;
+			mem_type_index_host = mem_type_index_host_local;
+			break;
+		}
+	} //gpu
+	//Создадим устройство
+	VkDevice device;
+	uint32_t fam_index = (uint32_t) -1;
+	if (!CreateDevice(gpu, fam_index, device))
+		return false;
+	/* И так, память устройства можно и нужно распределять вручную. Допустим, мы хотим выделить память для нескольких ресурсов,
+	 * а потом распределить её. Допустим, нам хватит 16 МБ, т.е. 10485760 байт. Т.е. кол-во выделяемой памяти задаётся, естесственно,
+	 * всегда в байтах. Для выделения памяти нам нужно заполнить информацию о ней (снова бюрократия, но это нормально).
+	*/ 
+	VkMemoryAllocateInfo alloc_info;
+	ZM(alloc_info);
+	alloc_info.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+	alloc_info.allocationSize = SIZE_MB_FROM(16);
+	alloc_info.memoryTypeIndex = mem_type_index;
+	VkDeviceMemory memory;
+	res = vkAllocateMemory(device, &alloc_info, NULL, &memory);
+	if (res != VK_SUCCESS)
+		return false;
+	vkDestroyDevice(device, NULL);
+	vkDestroyInstance(instance, NULL);
+	return true;
+}
 
 int main()
 {
 	setlocale(LC_ALL, "Russian");
-	MemoryController controller;
-	VkInstanceCreateInfo instance_info;
-	memset(&instance_info, 0, sizeof(instance_info));
-	instance_info.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
-	VkInstance instance = VK_NULL_HANDLE;
-	auto ret = vkCreateInstance(&instance_info, controller.GetCallbacks(), &instance);
-	if (ret != VK_SUCCESS)
-		return 1;
-	vkDestroyInstance(instance, controller.GetCallbacks());
+	if (!MemoryHost())
+		return -1;
+	PrintDelimiter(80);
+	if (!MemoryDevice())
+		return -1;
+	PrintDelimiter(80);
 	return 0;
 }
 
