@@ -21,6 +21,7 @@ public:
     Renderer();
     ~Renderer();
 
+	void load();
     void set_window(NativeHandle &nhandle);
 };
 

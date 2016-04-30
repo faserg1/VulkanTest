@@ -6,6 +6,7 @@ int main(int argc, char *argv[])
 {
     QApplication a(argc, argv);
     Renderer robj;
+	robj.load();
     MainWindow w;
     w.show();
 

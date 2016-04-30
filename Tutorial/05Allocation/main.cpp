@@ -20,7 +20,7 @@
  * хотите контролировать её выделение — можно создать специальный контроллер (или просто функции), которые будут
  * запрашивать память, и передавать дополнительную информацию. К слову говоря, вы можете выделить какой-то участок
  * памяти заранее, и уже там отправлять отдельные кусочки этой памяти в Vulkan. Тем не менее, есть места, где вы
- * таким образом не сможете управлять памятью, так как этим занимается Vulkan Loader.
+ * таким образом не сможете управлять памятью.
  * 
  * Для начала объявим класс, который будет заниматься всем управлением. Это может быть конечно же не класс, а просто
  * отдельные функции.
@@ -135,7 +135,7 @@ public:
 		VkSystemAllocationScope scope) //сфера применения памяти
 	{
 		if (pUserData)
-			((MemoryControllerData *) pUserData)->ctrl->log(size, alignment, scope);
+			static_cast<MemoryControllerData *>(pUserData)->ctrl->log(size, alignment, scope);
 		/* А дальше идёт код, который я стырил на StackOverflow. Но всё равно его поясню, как этот код устроен.
 		 * Хотя, конечно же, можно реализовать всё это иначе.
 		*/ 
@@ -178,7 +178,7 @@ public:
 	static void VKAPI_PTR mc_free(void *pUserData, void *memory)
 	{
 		if (pUserData)
-			((MemoryControllerData *) pUserData)->ctrl->log_free();
+			static_cast<MemoryControllerData *>(pUserData)->ctrl->log_free();
 		if(memory != 0)
             free(*(reinterpret_cast<void**>(memory)-1));
 	}
@@ -189,13 +189,13 @@ public:
 		VkInternalAllocationType allocationType, VkSystemAllocationScope allocationScope)
 	{
 		if (pUserData)
-			((MemoryControllerData *) pUserData)->ctrl->ilog(false, allocationType, allocationScope);
+			static_cast<MemoryControllerData *>(pUserData)->ctrl->ilog(false, allocationType, allocationScope);
 	}
 	static void VKAPI_PTR mc_ifree(void *pUserData, size_t size,
 		VkInternalAllocationType allocationType, VkSystemAllocationScope allocationScope)
 	{
 		if (pUserData)
-			((MemoryControllerData *) pUserData)->ctrl->ilog(true, allocationType, allocationScope);
+			static_cast<MemoryControllerData *>(pUserData)->ctrl->ilog(true, allocationType, allocationScope);
 	}
 	//Конструктор, который соберёт всё воедино
 	MemoryController()
@@ -303,7 +303,7 @@ bool MemoryHost()
  * Забегая вперёд, скажу, что вы сначала создаёте виртуальный ресурс, который не может ничего в себе содержать до привязки к
  * памяти, и вы должны спросить, какие требования у него есть к памяти, и потом выдать необходимую память.
  * 
- * Так что в этом случае вы разберёмся с памятью устройства.
+ * Поэтому посмотрим на работу с памятью устройства, а также памятью хоста.
 */
 
 #define SIZE_B(size) (size)
@@ -339,10 +339,10 @@ bool MemoryDevice()
 	VkPhysicalDeviceMemoryProperties memory_properties_choosed;
 	uint32_t mem_type_index = -1;
 	uint32_t mem_type_index_host = -1;
-	//Листаем все Gpu
+	//Просматриваем устройства
 	for (size_t gpu_index = 0; gpu_index < gpu_list.size(); gpu_index++)
 	{
-		std::wcout << L">>> Смотрим информацию о видеокарте с индексом " << gpu_index << L".\n";
+		std::wcout << L">>> Смотрим информацию о устройстве с индексом " << gpu_index << L".\n";
 		VkPhysicalDeviceMemoryProperties memory_properties;
 		uint32_t mem_type_index_local = -1;
 		uint32_t mem_type_index_host_local = -1;
@@ -350,7 +350,7 @@ bool MemoryDevice()
 		/* В структуре можно найти информацию о кучах (heap) и типах памяти.
 		 * Кучи бывают разные, но в основном их не так много.
 		*/
-		std::wcout << L"В видеокарте " << memory_properties.memoryHeapCount << L" куч.\n";
+		std::wcout << L"В устройстве " << memory_properties.memoryHeapCount << L" куч.\n";
 		for (uint32_t heap_index = 0; heap_index < memory_properties.memoryHeapCount; heap_index++)
 		{
 			PrintDelimiter(80/4, '+');
@@ -370,7 +370,7 @@ bool MemoryDevice()
 				std::wcout << L"Это локальная память устройства.\n";
 			PrintDelimiter(80/4, '+');
 		} //heap
-		std::wcout << L"В видеокарте " << memory_properties.memoryTypeCount << L" типов памяти.\n";
+		std::wcout << L"В устройстве " << memory_properties.memoryTypeCount << L" типов памяти.\n";
 		for (uint32_t type_index = 0; type_index < memory_properties.memoryTypeCount; type_index++)
 		{
 			PrintDelimiter(80/4, '*');
@@ -380,6 +380,7 @@ bool MemoryDevice()
 			if (type.propertyFlags == 0)
 			{
 				/* Обычно это некэшированная память хоста.
+				 * Выделение этой памяти равносильно malloc/free.
 				*/ 
 				std::wcout << L"Это обычная память.\n";
 			}
@@ -431,7 +432,7 @@ bool MemoryDevice()
 		 * Предстваим, что нам нужно взять локальну память устройства. Переменная mem_type_index_local уже хранит нужный индекс,
 		 * и если всё правильно, то мы его заберём вместе с физическим устройством и другими данными.
 		*/
-		if (mem_type_index_local != -1)
+		if (mem_type_index_local != (uint32_t) -1)
 		{
 			gpu = gpu_list[gpu_index];
 			memory_properties_choosed = memory_properties;
@@ -446,7 +447,7 @@ bool MemoryDevice()
 	if (!CreateDevice(gpu, fam_index, device))
 		return false;
 	/* И так, память устройства можно и нужно распределять вручную. Допустим, мы хотим выделить память для нескольких ресурсов,
-	 * а потом распределить её. Допустим, нам хватит 16 МБ, т.е. 10485760 байт. Т.е. кол-во выделяемой памяти задаётся, естесственно,
+	 * а потом распределить её. Допустим, нам хватит 16 МБ, т.е. 16777216 байт. Т.е. кол-во выделяемой памяти задаётся, естесственно,
 	 * всегда в байтах. Для выделения памяти нам нужно заполнить информацию о ней (снова бюрократия, но это нормально).
 	*/ 
 	VkMemoryAllocateInfo alloc_info;
@@ -455,9 +456,65 @@ bool MemoryDevice()
 	alloc_info.allocationSize = SIZE_MB_FROM(16);
 	alloc_info.memoryTypeIndex = mem_type_index;
 	VkDeviceMemory memory;
-	res = vkAllocateMemory(device, &alloc_info, NULL, &memory);
-	if (res != VK_SUCCESS)
+	ret = vkAllocateMemory(device, &alloc_info, NULL, &memory);
+	if (ret != VK_SUCCESS)
 		return false;
+	/* Так мы выделили память устройства. Ровно 16 МБ. К слову говоря, мы, так или иначе, не можем её прочитать напрямую, если она
+	 * не Host visible. Всё, что мы можем сделать — скопировать память туда или обратно, но не записывать, используя указатели
+	 * языка (например, void * на память устройства) или что-либо ещё.
+	*/ 
+	vkFreeMemory(device, memory, NULL);
+	/* Тем не менее, есть и память, которую мы можем прочитать прочитать и асоциировать, такая память называется
+	 * отображаемой (mappable). Мы можем просто получить указатель на память, и работать с этой памятью, как с обычной
+	 * памятью хоста. Обычно, это и есть память хоста, но имплементация разрешает вариант отображаемой памяти устройства.
+	 * Таким образом, мы можем получить указатель на эту память и работать с ней через этот указатель.
+	*/
+	alloc_info.memoryTypeIndex = mem_type_index_host;
+	ret = vkAllocateMemory(device, &alloc_info, NULL, &memory);
+	if (ret != VK_SUCCESS)
+		return false;
+	void *pMemory = nullptr;
+	ret = vkMapMemory(device, memory, //хэндлы девайса и памяти
+		0, alloc_info.allocationSize, //смещение от начала и размер, необходимый для работы
+		0, &pMemory); //флаги (зарезервированы) и указатель на указатель, последний из которых будет содержать адресс памяти
+	if (ret != VK_SUCCESS)
+		return false;
+	/* Учтите, что вам придётся синхронизировать доступ к памяти, так как иногда она бывает не дступной для записи/чтения,
+	 * так как с ней может работать устройство. Как всё это дело синхронизировать? Покажем на примере!
+	 * Для прикола запишем туда 4 рандомных байта:
+	*/
+	uint8_t test[4] = {12, 18, 54, 45};
+	memcpy(pMemory, test, 4);
+	/* Далее, убеждаемся, что мы не собираемся использовать эту память в девайсе (для чтения/записи) и не собираемся записывать
+	 * в память что-то ещё (если наше приложение многопоточное). После этого "отправляем" эту память — т.е. гарантируем, что память
+	 * доступна устройству для чтения. Мы можем одновременно отправялть на подтверждение сразу несколько диапазонов памяти.
+	 * Для каждого из диапазонов используется следующая структура:
+	*/
+	VkMappedMemoryRange mem_range;
+	ZM(mem_range);
+	mem_range.sType = VK_STRUCTURE_TYPE_MAPPED_MEMORY_RANGE;
+	mem_range.memory = memory; //память, которую мы используем
+	mem_range.offset = 0; //смещение в памяти
+	mem_range.size = 4; //размер
+	//После этого отправляем все необходимые структуры:
+	ret = vkFlushMappedMemoryRanges(device, 1, &mem_range);
+	if (ret != VK_SUCCESS)
+		return false;
+	/* Также, есть функция, которая используется для обратного назначения — чтобы гарантировать, что все записи сделанные
+	 * устройством будут видны и на хосте.
+	*/
+	ret = vkInvalidateMappedMemoryRanges(device, 1, &mem_range);
+	if (ret != VK_SUCCESS)
+		return false;
+	/* Как только мы добились гарантии — можно снова использовать тот полученный нами указатель. Да-да, он никуда
+	 * не терялся, и мы можем использовать его до сих пор, не смотря на то, что устройство могло взаимодействовать с той памятью.
+	 * Ну, а если нам больше не нужен доступ к памяти, мы можем отвзяать память от указателя.
+	 * И после этого работать с указателем, естественно, нельзя.
+	 * Конечно же, есть и последовательная (coherent) паммять, для которой не нужно использовать функции vkFlushMappedMemoryRanges и
+	 * vkInvalidateMappedMemoryRanges.
+	*/ 
+	vkUnmapMemory(device, memory); //отвязываем указатель pMemory
+	vkFreeMemory(device, memory, NULL); //освобождаем саму память
 	vkDestroyDevice(device, NULL);
 	vkDestroyInstance(instance, NULL);
 	return true;

@@ -146,6 +146,10 @@ int main()
 	 * но можете попробовать и по другому: ниже закоментированная область работала для 1.0.5.
 	*/
 	instance_layers.push_back("VK_LAYER_LUNARG_standard_validation");
+	/* Кроме того, мы можем подключить слой для приложения vktrace, которое также поможет отладить приложение.
+	 * О том, как его использовать, будет рассказано в одном из следующих уроках.
+	*/
+	instance_layers.push_back("VK_LAYER_LUNARG_vktrace");
 	/*
 	instance_layers.push_back("VK_LAYER_GOOGLE_threading");
 	instance_layers.push_back("VK_LAYER_LUNARG_param_checker");

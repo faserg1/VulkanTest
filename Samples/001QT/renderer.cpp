@@ -1,18 +1,10 @@
 #include "renderer.h"
 #include "nativehandle.h"
 #include <cstring>
-#include <iostream>
+#include <QDebug>
 
 Renderer::Renderer() : vk_inst(nullptr), vk_dev(nullptr), gpu_count(0), native_handle(nullptr)
 {
-    if (!initVulkan())
-        std::cerr << "Cannot create Vulkan Instance.\n";
-    else
-        std::cout << "Created Vulkan!\n";
-    if (!createDevice())
-        std::cerr << "Cannot create Vulkan Device.\n";
-    else
-        std::cout << "Vulkan have his own device...\n";
     this->native_handle = new NativeHandle;
 }
 
@@ -30,12 +22,24 @@ Renderer::~Renderer()
     }
 }
 
+void Renderer::load()
+{
+	if (!initVulkan())
+        qCritical() << "Cannot create Vulkan Instance.\n";
+    else
+        qInfo() << "Created Vulkan!\n";
+    if (!createDevice())
+        qCritical() << "Cannot create Vulkan Device.\n";
+    else
+        qInfo() << "Vulkan have his own device...\n";
+}
+
 bool Renderer::initVulkan()
 {
     VkApplicationInfo app_info;
     memset(&app_info, 0, sizeof(app_info));
     app_info.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
-    app_info.apiVersion = VK_MAKE_VERSION(1, 0, 5);
+    app_info.apiVersion = VK_MAKE_VERSION(1, 0, 11);
     app_info.pApplicationName = "VulkanTest.Sample001";
     app_info.applicationVersion = VK_MAKE_VERSION(0, 1, 3);
 
@@ -87,11 +91,11 @@ bool Renderer::createDevice()
 
     if (fq_index == (uint32_t) -1) //still not found graphics bit
     {
-        std::cerr << "You have not a graphic bit in your family!\n";
+        qCritical() << "You have not a graphic bit in your family!\n";
         return false;
     }
     else
-        std::cout << "I found a graphic bit in a " << fq_index << " family index.\n";
+        qInfo() << "I found a graphic bit in a " << fq_index << " family index.\n";
 
     float dev_q_pri[] = {1.0f};
 
