@@ -13,6 +13,10 @@
   <property name="windowTitle">
    <string>Пример Vulkan + QT</string>
   </property>
+  <property name="windowIcon">
+   <iconset>
+    <normaloff>../../../../../Projects/Qt/WolfToolCreatePost/res/Proj23232ect.png</normaloff>../../../../../Projects/Qt/WolfToolCreatePost/res/Proj23232ect.png</iconset>
+  </property>
   <widget class="QWidget" name="centralWidget"/>
  </widget>
  <layoutdefault spacing="6" margin="11"/>

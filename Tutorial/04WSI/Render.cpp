@@ -10,13 +10,13 @@ Render::Render()
 	instance = VK_NULL_HANDLE;
 	device = VK_NULL_HANDLE;
 	gpu = VK_NULL_HANDLE;
-	
+
 	graphic_family_index = (uint32_t) -1;
 	present_family_index = (uint32_t) -1;
-	
+
 	surface_data.surface = VK_NULL_HANDLE;
 	surface_data.extensions_enabled = false;
-	
+
 	swapchain_data.extensions_enabled = false;
 	swapchain_data.gpu_support = false;
 	swapchain_data.swapchain = VK_NULL_HANDLE;
@@ -178,6 +178,11 @@ const VkDevice Render::GetDevice() const
 	return device;
 }
 
+const VkSwapchainKHR Render::GetSwapchain() const
+{
+	return swapchain_data.swapchain;
+}
+
 void Render::EnableDebug(bool enable)
 {
 	if (enable)
@@ -197,14 +202,14 @@ bool Render::EnableSurface(bool enable)
 		 * Эти два расширения недоступны для карт NVIDIA, так как их поддержка всё ещё в разработке.
 		 * Источник: https://devtalk.nvidia.com/default/topic/925605/linux/nvidia-364-12-release-vulkan-glvnd-drm-kms-and-eglstreams/
 		 * А чтобы проверить доступные возможности, можно воспользоваться приложением vulkaninfo.
-		 * 
+		 *
 		 * Если некоторые функции, которые используют WSI, вернули VK_ERROR_SURFACE_LOST_KHR, то нам нужно уничтожить плоскость,
 		 * и вместе с этим и цепочки переключений (swapchain), которую эту плоскость используют, так как они больше
 		 * не пригодны к использованию.
 		 * Если функции вернули VK_ERROR_OUT_OF_DATE_KHR, то это означает, что сама плосколсть не пропала, но изменилась.
 		 * Рисовать в неё, конечно, можно, но это отнимает часть производительности, так как приходится вручную преобразовывать
 		 * изображение. Чтобы этого не было нужно пересоздать цепочку переключений с новыми параметрами.
-		 * 
+		 *
 		 * Для начала добавим неободимые расширения. Первым делом, добавим общее (базовое) расширение для плоскостей.
 		 * Для этого у нас есть специальное макроимя. Прежде, чем мы добавим это расширение, проверим его на доступность.
 		*/
@@ -215,7 +220,7 @@ bool Render::EnableSurface(bool enable)
 		 * Но перед этим нам нужно настроить заголовки Vulkan под нашу платформу, поэтому в Render.h, перед тем, как добавить
 		 * vulkan.h, добавлен заголовок platform.h, который настраивает макроимена. Иначе нам просто не будут доступны необходимые
 		 * функции и структуры.
-		*/ 
+		*/
 		#if defined(VK_USE_PLATFORM_WIN32_KHR)
 		if (!CheckInstanceExtension(NULL, VK_KHR_WIN32_SURFACE_EXTENSION_NAME))
 			return false;
@@ -237,24 +242,24 @@ bool Render::EnableSurface(bool enable)
 
 bool Render::CreateInstance(std::string app_name)
 {
-	VkApplicationInfo app_info; 
+	VkApplicationInfo app_info;
 	ZM(app_info);
 	app_info.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
 	app_info.pApplicationName = app_name.c_str();
 	app_info.apiVersion = VK_MAKE_VERSION(1, 0, 8);
 	app_info.applicationVersion = VK_MAKE_VERSION(0, 1, 0);
-	
+
 	VkInstanceCreateInfo instance_info;
 	ZM(instance_info);
 	instance_info.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
 	instance_info.pApplicationInfo = &app_info;
-	
+
 	instance_info.enabledLayerCount = instance_layers.size();
 	instance_info.ppEnabledLayerNames = instance_layers.data();
-	
+
 	instance_info.enabledExtensionCount = instance_extensions.size();
 	instance_info.ppEnabledExtensionNames = instance_extensions.data();
-	
+
 	if (vkCreateInstance(&instance_info, NULL, &instance) != VK_SUCCESS)
 		return false;
 	return true;
@@ -268,7 +273,7 @@ bool Render::CreateSurface(Application *app, Window *w)
 	#if defined(VK_USE_PLATFORM_WIN32_KHR)
 	/* Для создания необходимой win32 плоскости нам понадобиться: HWND & HINSTANCE.
 	 * Их мы возьмём их наших параметров.
-	*/ 
+	*/
 	VkWin32SurfaceCreateInfoKHR surface_info;
 	ZM(surface_info);
 	surface_info.sType = VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR;
@@ -321,7 +326,7 @@ bool Render::PrepareGPU()
 		return false;
 	}
 	gpu = gpu_list[0];
-	
+
 	uint32_t family_count = 0;
 	vkGetPhysicalDeviceQueueFamilyProperties(gpu, &family_count, VK_NULL_HANDLE);
 	std::vector<VkQueueFamilyProperties> family_properties_list(family_count);
@@ -344,7 +349,7 @@ bool Render::PrepareGPU()
 		 * индекс семейства (входной)
 		 * плоскость, что мы создали (входной)
 		 * логическая переменная, значение которой и показывает возможность поддержки (выходной)
-		*/ 
+		*/
 		if (vkGetPhysicalDeviceSurfaceSupportKHR(gpu, i, surface_data.surface, &support_present_to_surface) != VK_SUCCESS)
 		{
 			//А здесь возможна обработка ошибки, если мы потеряли плоскость или хосту/девайсу не хватает памяти.
@@ -358,7 +363,7 @@ bool Render::PrepareGPU()
 			 * физическое устройство
 			 * индекс семейства
 			 * Возвращает VkBool32. VK_TRUE, если поддерживает.
-			*/ 
+			*/
 			if (vkGetPhysicalDeviceWin32PresentationSupportKHR(gpu, i) == VK_TRUE
 				&& present_family_index == (uint32_t) -1)
 				present_family_index = i;
@@ -381,21 +386,21 @@ bool Render::CreateDevice()
 	ZM(device_queue_info);
 	device_queue_info.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
 	float device_queue_priority[] = {1.0f};
-	device_queue_info.queueCount = 1; 
-	device_queue_info.queueFamilyIndex = graphic_family_index; 
+	device_queue_info.queueCount = 1;
+	device_queue_info.queueFamilyIndex = graphic_family_index;
 	device_queue_info.pQueuePriorities = device_queue_priority;
-	
+
 	//Настройка девайса
-	VkDeviceCreateInfo device_info; 
+	VkDeviceCreateInfo device_info;
     ZM(device_info);
-	device_info.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO; 
+	device_info.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
 	device_info.queueCreateInfoCount = 1;
 	device_info.pQueueCreateInfos = &device_queue_info;
 	device_info.enabledLayerCount = device_layers.size();
 	device_info.ppEnabledLayerNames = device_layers.data();
 	device_info.enabledExtensionCount = device_extensions.size();
 	device_info.ppEnabledExtensionNames = device_extensions.data();
-	
+
 	//Создание девайса
 	if (vkCreateDevice(gpu, &device_info, NULL, &device) != VK_SUCCESS)
 		return false;
@@ -440,14 +445,14 @@ bool Render::PrepareSwapchain()
 	/* И теперь немного покопаемся:
 	 * Для начала, посмотрим, сколько изображений может содержать наш Swapchain. Это может понадобиться, для того, чтобы
 	 * сделать тройную буферизацию, если такое возможно. Обычно, minImageCount = 1.
-	*/ 
+	*/
 	std::wcout << L">> Минимальное кол-во изображений: " << surface_data.surface_capabilities.minImageCount << L".\n";
 	std::wcout << L">> Максимальное кол-во изображений: " << surface_data.surface_capabilities.maxImageCount << L".\n";
 	/* Теперь, нам допустим нужно узнать размеры области, в которую мы хотим что-то отображать, не особо заморачиваясь с
 	 * функциями вашего оконного API. Для этого есть currentExtent с параметрами width и height.
 	 * Также, есть minImageExtent и maxImageExtent, которые показывают минимально и максимально возможное разрешение
 	 * изображения соответственно (не для текущей плоскости, а вообще возможной).
-	*/ 
+	*/
 	std::wcout << L">> Размер области рисования: " <<
 		sc.currentExtent.width << L"x" <<
 		sc.currentExtent.height << L".\n";
@@ -459,12 +464,12 @@ bool Render::PrepareSwapchain()
 		sc.maxImageExtent.height << L".\n";
 	/* Также, у изображения могут быть слои, и максимальное их кол-во задаётся парамтером maxImageArrayLayers.
 	 * Подробнее о слоях изображения будет рассказано в одном из следующих уроков.
-	*/ 
+	*/
 	std::wcout << L">> Максимальное кол-во слоёв изображения: " <<
 		sc.maxImageArrayLayers << L".\n";
 	/* У изображения также есть разные преобразования (трансформации), т.е. вращение и/или отраение изображения.
 	 * За поддерживаемые форматы отвечает битовая маска supportedTransforms, а за текущею трансформацию currentTransform.
-	*/ 
+	*/
 	if (sc.supportedTransforms)
 	{
 		std::wcout << L">> Есть поддержка трансформаций:\n";
@@ -564,13 +569,13 @@ bool Render::PrepareSwapchain()
 		/* Различных форматов бесчисленное множество, так что перечислять и проверять их все здесь — безумие.
 		 * Но существует и другое. На момент спецификации 1.0.10 было замечено, что Vulkan возможно будет поддерживать другие
 		 * цветовые схемы, кроме sRGB, но на данный момент, sRGB — это единственная возможная.
-		*/ 
+		*/
 		if (sf.colorSpace == VK_COLORSPACE_SRGB_NONLINEAR_KHR)
 			std::wcout << ">>> Поддержка цветовой схемы sRGB.\n";
 	}
 	/* Последним проверим режимы презентации изображений. С ними проще: всего 4 возможных.
 	 * Режим фактически определяет, каким способом будет обновлятся наше изображение.
-	*/ 
+	*/
 	std::vector<VkPresentModeKHR> &pm = surface_data.present_modes;
 	std::wcout << L">> Кол-во режимов показа: " << pm.size() << L".\n";
 	for (size_t i = 0; i < pm.size(); i++)
@@ -581,7 +586,7 @@ bool Render::PrepareSwapchain()
 			case VK_PRESENT_MODE_IMMEDIATE_KHR:
 				/* В данном случае, изоражение отображается немедленно, ничего не ожидая. Поэтому могут быть заметны разрывы,
 				 * между предыдущем кадром и следующем.
-				*/ 
+				*/
 				std::wcout << L">>> Изображение обновляется немедленно.\n";
 				break;
 			case VK_PRESENT_MODE_MAILBOX_KHR:
@@ -590,7 +595,7 @@ bool Render::PrepareSwapchain()
 				 * и если пришло новое, то старое (в очереди) заменяется новым, и выбывшее уходит на переиспользование.
 				 * Также на переиспользование уходит изображение, которое уже отобразилось на плоскости. Т.е. эти
 				 * изображения вновь стали доступны для использования приложением.
-				*/ 
+				*/
 				std::wcout << L">>> Изображение ждёт VBI. Очередь состоит из 1 изображения.\n";
 				break;
 			case VK_PRESENT_MODE_FIFO_KHR:
@@ -598,7 +603,7 @@ bool Render::PrepareSwapchain()
 				 * Если очередь заполнена, то новое изображение заменяет старое, т.е. изображение в начале очереди удаляется,
 				 * и новое помещается в конец очереди.
 				 * Спецификация говорит, что это всё равно, что в {wgl|glX|egl}SwapBuffers использовать интервал смены 1.
-				*/ 
+				*/
 				std::wcout << L">>> Изображение ждёт VBI. Очередь состоит из (numSwapchainImages - 1) изображений.\n";
 				break;
 			case VK_PRESENT_MODE_FIFO_RELAXED_KHR:
@@ -606,12 +611,12 @@ bool Render::PrepareSwapchain()
 				 * то изображение отобразится на плоскость сразу же, без ожидания следующего VBI. Очередь работает также,
 				 * как и с предыдущим вариантом.
 				 * Спецификация говорит, что это всё равно, что в {wgl|glX|egl}SwapBuffers использовать интервал смены -1.
-				*/ 
+				*/
 				std::wcout << L">>> Изображение может ждать VBI. Очередь состоит из (numSwapchainImages - 1) изображений.\n";
 				break;
 		}
 	}
-	
+
 	return true;
 }
 
@@ -639,7 +644,7 @@ bool Render::CreateSwapchain()
 	VkSurfaceFormatKHR surface_format = {VK_FORMAT_UNDEFINED, VK_COLORSPACE_SRGB_NONLINEAR_KHR};
 	/* И так, допустим в списке у нас только один формат VK_FORMAT_UNDEFINED. На самом деле, это значит, что можно для
 	 * плоскости выбрать любой формат (формат изображения, конечно же).
-	*/ 
+	*/
 	if (surface_data.available_formats.size() == 1 && surface_data.available_formats[0].format == VK_FORMAT_UNDEFINED)
 	{
 		surface_format = {VK_FORMAT_R8G8B8A8_UNORM, VK_COLORSPACE_SRGB_NONLINEAR_KHR};
@@ -652,7 +657,7 @@ bool Render::CreateSwapchain()
 		if (surface_data.available_formats[i].format == VK_FORMAT_R8G8B8A8_UNORM)
 			surface_format = surface_data.available_formats[i];
 	}
-	//Если такого нет... 
+	//Если такого нет...
 	if (surface_format.format == VK_FORMAT_UNDEFINED)
 		surface_format = surface_data.available_formats[0]; //...то не будем заморачиваться!
 	/* Теперь надо настроить разрешение изображений. Тут в принципе всё просто, когда оно задаётся через
@@ -664,7 +669,7 @@ bool Render::CreateSwapchain()
 	{
 		/* Можно, конечно, проверить и на минимумы, но зачем? Обычно, минимум равен {1,1}, и даже если превышает
 		 * это число, то не должен превышать максимум. Но кто знает, может здесь затаился великий математик?
-		*/ 
+		*/
 		if (sc_extent.height > sc.maxImageExtent.height)
 			sc_extent.height = sc.maxImageExtent.height;
 		if (sc_extent.width > sc.maxImageExtent.width)
@@ -673,7 +678,7 @@ bool Render::CreateSwapchain()
 	/* Флаги использвания. В общем, нам всего лишь нужно проверить, можно ли копировать данные в изображение,
 	 * за это отвечает флаг VK_IMAGE_USAGE_TRANSFER_DST_BIT. Но здесь обязательно есть флаг использвания цвета,
 	 * т.е. VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT, если существует какой-либо другой.
-	*/ 
+	*/
 	VkImageUsageFlags flags = 0;
 	if (sc.supportedUsageFlags & VK_IMAGE_USAGE_TRANSFER_DST_BIT)
 		flags = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
@@ -687,7 +692,7 @@ bool Render::CreateSwapchain()
 		return false;
 	/* Способ отображения с минимальной задержкой — VK_PRESENT_MODE_MAILBOX_KHR. Ещё бы, очередь состоит всего
 	 * лишь из 1 изображения (другое сейчас отображается на плоскости). Хотя, этот способ может оказаться недоступным.
-	*/ 
+	*/
 	VkPresentModeKHR pm = VK_PRESENT_MODE_IMMEDIATE_KHR;
 	for (size_t i = 0; i < surface_data.present_modes.size(); i++)
 	{
@@ -709,7 +714,7 @@ bool Render::CreateSwapchain()
 	swapchain_create_info.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
 	/* flags зарезервированы, должны быть NULL, pNext должен быть NULL или указатель на структуру из расширения.
 	 * Заполним структуру данными, которые мы получили.
-	*/ 
+	*/
 	swapchain_create_info.imageExtent = sc_extent;
 	swapchain_create_info.imageFormat = surface_format.format;
 	swapchain_create_info.imageColorSpace = surface_format.colorSpace;
@@ -743,7 +748,7 @@ bool Render::CreateSwapchain()
 	 * Также, могут возникнуть ошибки, если потеряна плоскость (VK_ERROR_SURFACE_LOST_KHR) или она
 	 * находится в использовании другого объекта (VK_ERROR_NATIVE_WINDOW_IN_USE_KHR), будь то объект Vulkan
 	 * или любой другой.
-	*/ 
+	*/
 	if (vkCreateSwapchainKHR(device, &swapchain_create_info, NULL, &swapchain_data.swapchain) != VK_SUCCESS)
 		return false;
 	return true;
@@ -768,7 +773,7 @@ VkCommandPool Render::CreateCommandPool(bool reset, bool transient)
 	ZM(pool_create_info);
 	pool_create_info.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
 	pool_create_info.queueFamilyIndex = graphic_family_index;
-	pool_create_info.flags = 
+	pool_create_info.flags =
 		(reset ? VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT : 0) |
 		(transient ? VK_COMMAND_POOL_CREATE_TRANSIENT_BIT : 0);
 	VkCommandPool pool = VK_NULL_HANDLE;

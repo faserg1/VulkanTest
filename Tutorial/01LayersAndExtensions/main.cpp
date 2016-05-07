@@ -19,7 +19,7 @@ char app_name[] = "Vulkan Tutorian. Layers And Extensions. © GrWolf.";
 /* Придётся потихоньку забегать вперёд, ведь сегодня речь пойдёт о fetch-функциях,
  * callback'ах, отладке и так далее.
  * Вначале я создам здесь прототип функции для debug-report'а. Но подробнее о нём будет ниже.
-*/ 
+*/
 
 VKAPI_ATTR VkBool32 VKAPI_CALL DebugReportCallback(VkDebugReportFlagsEXT,VkDebugReportObjectTypeEXT,
 	uint64_t,size_t,int32_t,const char*,const char*,void*);
@@ -29,18 +29,18 @@ int main()
 	//Настроем вывод.
 	setlocale(LC_ALL, "Russian");
 	//Подготовим данные приложения
-	VkApplicationInfo app_info; 
+	VkApplicationInfo app_info;
 	memset(&app_info, 0, sizeof(app_info));
 	app_info.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
 	app_info.pApplicationName = app_name;
 	/* Можно использовать новую версию таким способом, но учтите, что это влияет только на драйвер.
-	 * Поэтому, если у вас не работает из-за старых драйверов, можно опустить версию до 1.0.3
-	*/ 
+	 * Поэтому, если у вас не работает из-за старых драйверов, можно опустить версию до 1.0.3.
+	*/
 	app_info.apiVersion = VK_MAKE_VERSION(1, 0, 5);
 	app_info.applicationVersion = VK_MAKE_VERSION(0, 1, 0);
-	
+
 	VkResult res; //заранее подготовим переменную для результата, она нам понадобится несколько раз.
-	
+
 	//Данные экземпляра
 	VkInstanceCreateInfo instance_info;
 	memset(&instance_info, 0, sizeof(instance_info));
@@ -90,7 +90,7 @@ int main()
 		}
 	}
 	std::cout << "\n\n";
-	
+
 	/* Лично я получил такой результат (после установки нового SDK, версии 1.0.5):
 	 * Слои экземпляра:
 	 * VK_LAYER_LUNARG_api_dump                |LunarG debug layer
@@ -108,7 +108,7 @@ int main()
 	 * VK_LAYER_RENDERDOC_Capture              |Debugging capture layer for RenderDoc
 	 * VK_LAYER_VALVE_steam_overlay            |Steam Overlay Layer
 	 * VK_LAYER_LUNARG_standard_validation     |LunarG Standard Validation Layer
-	 * 
+	 *
 	 * И да, имена слоёв могут различаться в зависимости от версии Vulkan, но об этом чуть позже.
 	 * Validation слои нужны фактически для отслеживания ошибок, подробности об этом возможно будут позже.
 	 * В общем, штука хорошая. И главное — по умолчанию, все эти слои ОТКЛЮЧЕНЫ.
@@ -127,18 +127,18 @@ int main()
 	 * VK_LAYER_LUNARG_draw_state
 	 * VK_LAYER_LUNARG_swapchain
 	 * VK_LAYER_GOOGLE_unique_objects
-	 * 
+	 *
 	 * Эти слои мы вскоре вручную добавим в наш экземпляр Vulkan. И так, снова предупреждаю, либо каждый из этих слоёв
 	 * (или просто VK_LAYER_LUNARG_standard_validation), плюс можно добавить дополнительные, либо ни один из них.
 	 * Почему так — ищите ответ сами.
 	 * Теперь о работе. Каждый слой мы будем добавлять сверху вниз, как и обычно, тем не менее, работать они будут снизу вверх.
 	 * А именно: вы вызвали функцию, после этого вызов обрабатывается слоём VK_LAYER_GOOGLE_unique_objects, потом выше и выше,
 	 * пока не достигнет VK_LAYER_LUNARG_threading/VK_LAYER_GOOGLE_threading, а затем вызов уйдёт в ядро Vulkan.
-	 * 
+	 *
 	 * Ну что, пробуем! Для начало нам нужно хранить эжи слои в массиве строк. В общем, как обычно, используем вектор.
-	*/ 
+	*/
 	std::vector<const char *> instance_layers;
-	
+
 	/* Пару слов о том, как выбираются слои:
 	 * После того, как я поставил новый Vulkan API SDK, появились новые слои, и появились изменения.
 	 * Например, теперь я должен писать не LUNARG_threading, а GOOGLE_threading.
@@ -161,12 +161,12 @@ int main()
 	instance_layers.push_back("VK_LAYER_LUNARG_swapchain");
 	instance_layers.push_back("VK_LAYER_GOOGLE_unique_objects");
 	*/
-	
-	
+
+
 	//И затем отправим их в стурктуру с информацией.
 	instance_info.enabledLayerCount = instance_layers.size();
 	instance_info.ppEnabledLayerNames = instance_layers.data();
-	
+
 	/* Хорошо, теперь давайте разберёмся с расширениями! И с ними не так всё просто. По умолчанию, Vulkan Loader даёт
 	 * только ядро Vulkan + частично WSI. И чтобы использовать эти расширения, необходимо получить (fetch) функции из них.
 	 * Но об этом чуть попозже. Давайте для начала посмотрим, какие у нас есть расширения.
@@ -183,7 +183,7 @@ int main()
 		std::wcout << "Не удалось получить кол-во расширений.\n";
 		exit(1);
 	}
-	
+
 	//настраиваем массив
 	std::vector<VkExtensionProperties> available_instance_extensions(available_instance_extension_count);
 	//Получаем расширения
@@ -203,7 +203,7 @@ int main()
 		}
 		std::cout << "\n\n";
 	}
-	
+
 	/* Теперь посмотрим, что есть из расширений:
 	 * Расширения экземпляра:
 	 * VK_KHR_surface
@@ -213,34 +213,34 @@ int main()
 	 * окно или ещё куда-нибудь. Но к какой либо оконной системе оно не привязано, это лишь базовое расширение.
 	 * Следующее как раз позволяет прикрепить эту поверхность к окну Win32, т.е. Windows окну (масло маслянное).
 	 * И последнее, позволяет делать debug-report'ы. Ну, почему бы и нет? Давайте сделаем.
-	*/ 
-	
+	*/
+
 	//Подготовим массив
 	std::vector<const char *> instance_extensions;
-	
+
 	/*И добавим расширение для отладочных репортов, используя макроимя.
 	 * Оно, как и полагается, содержит имя необходимого нам расширения.
 	*/
 	instance_extensions.push_back(VK_EXT_DEBUG_REPORT_EXTENSION_NAME);
-	
+
 	//Настроим наши расширения.
 	instance_info.enabledExtensionCount = instance_extensions.size();
 	instance_info.ppEnabledExtensionNames = instance_extensions.data();
-	
+
 	/* Отлично. Теперь, чтобы работать с этим расширеним, нам уже нужно создать экземпляр Vulkan,
 	 * чтобы впоследствии через Vulkan Loader получить функции этого расширения. Поехали.
 	*/
-	
+
 	VkInstance instance = VK_NULL_HANDLE;
 	res = vkCreateInstance(&instance_info, NULL, &instance);
 	if (res != VK_SUCCESS) //С проверками особо заморачиваться не будем.
 	{
-		std::wcerr << L"Что-то не так...\n"; 
-		exit(1); 
+		std::wcerr << L"Что-то не так...\n";
+		exit(1);
 	}
 	else
 		std::wcout << L"Экземпляр Vulkan создан.\n";
-	
+
 	/* Отлично, теперь эти репорты надо настроить. Для этого воспользуемся функцией vkGetInstanceProcAddr.
 	 * Первый параметр — наш экземпляр, второй — имя функции, которую мы хотим получить.
 	 * К слову говоря, подключать Vulkan можно динамическим путём. Через эту функцию можно получить и те,
@@ -251,33 +251,33 @@ int main()
 	 * Для этого нам уже немного упростили жизнь, создав специальные типы указателей на функции.
 	 * Причём, на ВСЕ функции. Можете сами посмотреть.
 	*/
-	
+
 	//Создадим указатели на функции таким образом.
 	PFN_vkCreateDebugReportCallbackEXT fvkCreateDebugReportCallbackEXT = NULL;
 	PFN_vkDestroyDebugReportCallbackEXT fvkDestroyDebugReportCallbackEXT = NULL;
-	
+
 	//И получим их.
-	fvkCreateDebugReportCallbackEXT = 
+	fvkCreateDebugReportCallbackEXT =
 		(PFN_vkCreateDebugReportCallbackEXT) vkGetInstanceProcAddr(instance, "vkCreateDebugReportCallbackEXT");
 	fvkDestroyDebugReportCallbackEXT =
 		(PFN_vkDestroyDebugReportCallbackEXT) vkGetInstanceProcAddr(instance, "vkDestroyDebugReportCallbackEXT");
-	
+
 	/* Отлично, мы получили эти функции! Теперь, нам нужно подготовить информацию для callback'ов, а также
 	 * оставить хэндл, который мы конечно же потом уничтожим.
 	*/
-	
+
 	//Структура, которую мы должны заполнить
 	VkDebugReportCallbackCreateInfoEXT debug_report_callback_info;
 	memset(&debug_report_callback_info, 0, sizeof(debug_report_callback_info));
 	debug_report_callback_info.sType = VK_STRUCTURE_TYPE_DEBUG_REPORT_CREATE_INFO_EXT; //сразу зададим тип структуры
-	
+
 	/* И так, флаги! VkDebugReportFlagsEXT Даёт нам следующие флаги:
 	 * VK_DEBUG_REPORT_INFORMATION_BIT_EXT — информационные сообщения.
 	 * VK_DEBUG_REPORT_WARNING_BIT_EXT — предупреждения
 	 * VK_DEBUG_REPORT_PERFORMANCE_WARNING_BIT_EXT — предупреждения о производительности
 	 * VK_DEBUG_REPORT_ERROR_BIT_EXT — ошибки
 	 * VK_DEBUG_REPORT_DEBUG_BIT_EXT — отладочные сообщения
-	 * 
+	 *
 	 * Самое время включить отладку на полную!
 	*/
 	debug_report_callback_info.flags = VK_DEBUG_REPORT_DEBUG_BIT_EXT |
@@ -289,24 +289,24 @@ int main()
 	 * через void *pUserData, об этом тоже можно сразу догадаться.
 	 * Тем не менее, сейчас man на эту тему вообще умалчивает.
 	 * Создаём хэндл:
-	*/ 
+	*/
 	VkDebugReportCallbackEXT debug_report_callback = VK_NULL_HANDLE;
 	//И наконец-таки привзяываем наш Callback:
 	res = fvkCreateDebugReportCallbackEXT(instance, &debug_report_callback_info, NULL, &debug_report_callback);
 	if (res != VK_SUCCESS)
 	{
-		std::wcerr << L"Не удалось создать debug-report callback.\n"; 
-		exit(1); 
+		std::wcerr << L"Не удалось создать debug-report callback.\n";
+		exit(1);
 	}
 	/* Отлично, мы привязали callback. Он  распространяется по всему Vulkan, поэтому привязывать ещё раз ничего не надо.
 	 * Если быть более точным, то это расширение привязывается к слоям, причём, не каждый слой может поддерживать
 	 * это расширение. Саму привязку allback'а к слоям можно увидеть в выводе: для каждого слоя будет размещено сообщение
 	 * [DebugReport] Added callback. И да, теоритически, Vulkan Core тоже является слоем, при этом, в любом случае самым
 	 * последним. Мы лишь можем добавить эти слои в середину между нашим приложением и самим ядром Vulkan.
-	 * 
+	 *
 	 * Теперь пора вновь взяться за создание нашего устройства. Менять ничего не будем, только привяжем новые слои и
 	 * расширения.
-	*/ 
+	*/
 	std::vector<VkPhysicalDevice> gpu_list; //здесь будем хранить физические устройства.
 	uint32_t gpu_count; //кол-во девайсов
 	//получаем колв-о девайсов и сразу проверяем на удачу.
@@ -374,7 +374,7 @@ int main()
 	VkDeviceQueueCreateInfo device_queue_info;
     memset(&device_queue_info, 0, sizeof(device_queue_info));
 	device_queue_info.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
-	
+
 	float device_queue_priority[] = {1.0f}; //Приоритет очередей
 	device_queue_info.queueCount = 1; //кол-во
 	device_queue_info.queueFamilyIndex = valid_family_index; //укажем индекс этих очередей
@@ -386,7 +386,7 @@ int main()
 	device_info.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO; //Задаём.
 	device_info.queueCreateInfoCount = 1; //Кол-во структур информации об очередях
 	device_info.pQueueCreateInfos = &device_queue_info; //сами структуры
-	
+
 	/* Теперь снова к нашим баранам — расширения и слои. Так как мы в прошлый раз перечисляли все доступные,
 	 * в этот раз сделаем тоже самое.
 	*/
@@ -394,7 +394,7 @@ int main()
 	/* Только теперь первым параметром встанет наше физическое устройство. Причём, этот параметр является
 	 * обязательным, так что по каждому устройству нужно будет смотреть возможные слои.
 	 * Далее, как всегда, кол-во слоёв и сами слои. Сначала получим кол-во.
-	*/ 
+	*/
 	res = vkEnumerateDeviceLayerProperties(gpu, &available_device_layer_count, VK_NULL_HANDLE);
 	if (res != VK_SUCCESS)
 	{
@@ -435,7 +435,7 @@ int main()
 		std::wcout << "Не удалось получить кол-во расширений.\n";
 		exit(1);
 	}
-	
+
 	//настраиваем массив
 	std::vector<VkExtensionProperties> available_device_extensions(available_device_extension_count);
 	//Получаем расширения
@@ -456,23 +456,23 @@ int main()
 	 * VK_KHR_swapchain
 	 * VK_NV_glsl_shader
 	 * VK_KHR_sampler_mirror_clamp_to_edge
-	 * 
+	 *
 	 * Подробнее о последних двух будем говорить в следующих уроках.
 	 * Теперь, давайте прикрепим слои к нашему устройству. Слои будут абсолютно те же, так что просто скопируем вектор.
 	*/
-	
+
 	std::vector<const char *> device_layers = instance_layers;
-	
+
 	//Расширения и слои
 	device_info.enabledLayerCount = device_layers.size();
 	device_info.ppEnabledLayerNames = device_layers.data();
-	
+
 	//А расширения устройства оставим и на сей раз пустым.
 	std::vector<const char *> device_extensions;
-	
+
 	device_info.enabledExtensionCount = device_extensions.size();
 	device_info.ppEnabledExtensionNames = device_extensions.data();
-	
+
 	//Создаём пустой хэндл..
 	VkDevice device = VK_NULL_HANDLE;
 	//Создаём устройство
@@ -482,16 +482,16 @@ int main()
 		exit(1);
 	}
 	std::wcout << L"Ура! Получилось! Device наш!\n";
-	
+
 	//*Здесь могла быть ваша реклама* Шучу. Здесь должен быть рендер и т.д.
-	
+
 	//Разрешаем устройство
 	vkDestroyDevice(device, NULL);
 	/* Разрушаем связь с Callback.
 	 * Первый параметр — экземпляр.
 	 * Второй — хэндл нашего debug-report callback.
 	 * Третий — управление памятью. Оставим по умолчанию.
-	*/ 
+	*/
 	fvkDestroyDebugReportCallbackEXT(instance, debug_report_callback, NULL);
 	//Разрушаем экземпляр.
 	vkDestroyInstance(instance, NULL);
@@ -504,7 +504,7 @@ int main()
 /* И так, для того, чтобы функция работала везде и всегда, нужны для неё специальные приставки,
  * которые в свою очередь по разному опрделяются в vulkan_platform.h, т.е. в зависимости от платформы.
  * Разберёимся с параметрами:
-*/ 
+*/
 
 VKAPI_ATTR VkBool32 VKAPI_CALL DebugReportCallback(
 	VkDebugReportFlagsEXT flags, //Это флаги нашего сообщения
@@ -512,7 +512,7 @@ VKAPI_ATTR VkBool32 VKAPI_CALL DebugReportCallback(
 	uint64_t object, //Сам объект, в основном указатель на него, хэндл
 	size_t location, //Что это?! man и спецификация пустует, нигде нет информации. Khronos Group, вы где?!
 	//(хотя, по идее, это может быть например строчка кода, где произошла ошибка)
-	
+
 	int32_t messageCode, //Код сообщения
 	const char *pLayerPrefix, //Это префикс сообщения, или тэг, как иногда пишут
 	const char *pMessage, //Само сообщение
@@ -523,12 +523,12 @@ VKAPI_ATTR VkBool32 VKAPI_CALL DebugReportCallback(
 	/* По умолчанию мы всегда возвращаем false.
 	 * Если вернуть true, о тогда команда, при котрой возникла ошибка просто не пойдёт дальше (в следующий слой или ядро Vulkan).
 	 * Возвращение false позволяет командам работать дальше.
-	*/ 
+	*/
 	return false;
 }
 /* Готово. Разобрались. Из-за того, что я пока что не нашёл более полного описания некоторых вещей, туториал не вышел столь
  * подробным, скорлько и предыдущий.
- * 
+ *
  * В общем, спасибо, что уделили этому уроку время. Khronos Group, Niko Kauppi, и тем, кто делает примеры — Большое Спасибо!
  * А дальше классика:
  * Если вы хотите меня поддержать, прикрепляю кошель с Я.Денег:
