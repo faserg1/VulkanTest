@@ -20,6 +20,8 @@ Render::Render()
 	swapchain_data.extensions_enabled = false;
 	swapchain_data.gpu_support = false;
 	swapchain_data.swapchain = VK_NULL_HANDLE;
+
+	debug_enabled = false;
 }
 
 Render::~Render()
@@ -189,6 +191,7 @@ void Render::EnableDebug(bool enable)
 		AddInstanceExtension(Logger::GetRequiredExtension());
 	else
 		RemoveInstanceExtension(Logger::GetRequiredExtension());
+	debug_enabled = enable;
 }
 
 bool Render::EnableSurface(bool enable)
@@ -246,7 +249,7 @@ bool Render::CreateInstance(std::string app_name)
 	ZM(app_info);
 	app_info.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
 	app_info.pApplicationName = app_name.c_str();
-	app_info.apiVersion = VK_MAKE_VERSION(1, 0, 8);
+	app_info.apiVersion = VK_MAKE_VERSION(1, 0, 11);
 	app_info.applicationVersion = VK_MAKE_VERSION(0, 1, 0);
 
 	VkInstanceCreateInfo instance_info;
@@ -571,7 +574,7 @@ bool Render::PrepareSwapchain()
 		 * цветовые схемы, кроме sRGB, но на данный момент, sRGB — это единственная возможная.
 		*/
 		if (sf.colorSpace == VK_COLORSPACE_SRGB_NONLINEAR_KHR)
-			std::wcout << ">>> Поддержка цветовой схемы sRGB.\n";
+			std::wcout << L">>> Поддержка цветовой схемы sRGB.\n";
 	}
 	/* Последним проверим режимы презентации изображений. С ними проще: всего 4 возможных.
 	 * Режим фактически определяет, каким способом будет обновлятся наше изображение.
@@ -614,13 +617,15 @@ bool Render::PrepareSwapchain()
 				*/
 				std::wcout << L">>> Изображение может ждать VBI. Очередь состоит из (numSwapchainImages - 1) изображений.\n";
 				break;
+			default:
+				break;
 		}
 	}
 
 	return true;
 }
 
-bool Render::CreateSwapchain()
+bool Render::CreateSwapchain(Window *w)
 {
 	/* Настало время создать нашу цепочку переключений. Фактически, эта цепочка позволяет нам переключаться между изображениями,
 	 * что лежат в очереди этой цепочки. Одно изображение сменяется другим. Одно изображение сейчас на плоскости, другое в обработке,
@@ -664,8 +669,9 @@ bool Render::CreateSwapchain()
 	 * currentExtent, но когда у этого параметра ширина и высота равны -1, тогда вы должны задать разрешение
 	 * сами, но упираясь в рамки. Это выглядит примерно так:
 	*/
-	VkExtent2D sc_extent = {512, 512};
-	if (sc.currentExtent.height == -1 && sc.currentExtent.width == -1)
+	VkExtent2D sc_extent;
+	w->GetWindowSize(sc_extent.width, sc_extent.height);
+	if (sc.currentExtent.height == (uint32_t) -1 && sc.currentExtent.width == (uint32_t) -1)
 	{
 		/* Можно, конечно, проверить и на минимумы, но зачем? Обычно, минимум равен {1,1}, и даже если превышает
 		 * это число, то не должен превышать максимум. Но кто знает, может здесь затаился великий математик?
@@ -682,16 +688,16 @@ bool Render::CreateSwapchain()
 	VkImageUsageFlags flags = 0;
 	if (sc.supportedUsageFlags & VK_IMAGE_USAGE_TRANSFER_DST_BIT)
 		flags = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
-	else if (sc.supportedUsageFlags & VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT)
-		flags = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
 	else
-		return false;
+		flags = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
 	//Вращать/отражать изображение мне совершенно не хочеться. Тем более, это влияет на производительность.
 	VkSurfaceTransformFlagBitsKHR transform = VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR;
 	if (!(sc.supportedTransforms & VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR))
 		return false;
-	/* Способ отображения с минимальной задержкой — VK_PRESENT_MODE_MAILBOX_KHR. Ещё бы, очередь состоит всего
-	 * лишь из 1 изображения (другое сейчас отображается на плоскости). Хотя, этот способ может оказаться недоступным.
+	/* Способ отображения с минимальной задержкой — VK_PRESENT_MODE_MAILBOX_KHR.
+	 * (Проверил: Clear Screen cпособоб выдавал на 200-300 кадров в секунду больше, чем с FIFO)
+	 * Хотя, этот способ может оказаться недоступным, так что FIFO будет подобным способом,
+	 * но чуть менее быстрым.
 	*/
 	VkPresentModeKHR pm = VK_PRESENT_MODE_IMMEDIATE_KHR;
 	for (size_t i = 0; i < surface_data.present_modes.size(); i++)

@@ -19,6 +19,8 @@ class Render
 	uint32_t present_family_index; //семейство, которое поддерживает surface платформы
 	VkPhysicalDevice gpu;
 
+	bool debug_enabled;
+
 	struct
 	{
 		bool extensions_enabled;
@@ -68,10 +70,12 @@ public:
 	void DestroySurface();
 
 	bool PrepareSwapchain();
-	bool CreateSwapchain();
+	bool CreateSwapchain(Window *w);
 	void DestroySwapchain();
 
 	void EnableDebug(bool enable);
+	inline bool IsDebugEnabled() {return debug_enabled;}
+
 	//возвращают состояниие (включены ли)
 	bool EnableSurface(bool enable);
 	bool EnableSwapchains(bool enable);
@@ -81,6 +85,8 @@ public:
 	const VkSwapchainKHR GetSwapchain() const;
 
 	const VkQueue GetQueue(uint32_t index) const;
+	inline int GetFamIndex(bool present) const
+		{return (present ? present_family_index : graphic_family_index);}
 
 	VkCommandPool CreateCommandPool(bool reset, bool transient);
 	void DestroyCommandPool(VkCommandPool pool);
