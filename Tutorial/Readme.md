@@ -1,6 +1,5 @@
 # Vulkan Tutorial
-![VulkanLogo](https://www.khronos.org/assets/khronos_20/css/images/Vulkan_500px_Mar15.png "Логотип Vulkan API")
-
+![VulkanLogo](images/vulkan_logo.png "Логотип Vulkan API")
 ## Описание
 
 **Vulkan Tutorial** — уроки по Vulkan API, созданные на основе уроков Niko Kauppi: [YouTube][NikoYouTube], [GitHub][NikoGitHub], переведённые на русский. А также добавлена дополнительная информация из [спецификации Vulkan API + WSI][VulkanSpecWSI]. Кстати, уже есть [перевод спецификации][SpecTranslate].
@@ -8,7 +7,7 @@
 Уроки представленны в виде наиболее упрощённого, последовательного кода с комментариями-объяснениями. Надеюсь, скучно там не будет!
 
 ***Если есть вопросы, вы можете задать их [здесь][GameDevForum] или [здесь][CyberForum].***
-
+***Перед прочтением уроков рекомендую прочитать [эту статью][VulkanDescriptionHabr] на Хабрахабре.***
 
 ## Оглавление
 ### 00Device
@@ -81,3 +80,4 @@ Code::Blocks
 [GameTechDevTutorial]: https://github.com/GameTechDev/IntroductionToVulkan "Уроки Vulkan от Intel — GitHub"
 [DARTeamVK]: http://vk.com/dev.ani.resu.team "Группа в ВКонтакте"
 [SpecTranslate]: http://vbomesh.blogspot.ru/p/vulkan-api.html "Перевод спецификации Vulkan API"
+[VulkanDescriptionHabr]: habr.ru/p/283490/
