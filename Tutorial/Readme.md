@@ -94,7 +94,7 @@ Code::Blocks
 [GameTechDevTutorial]: https://github.com/GameTechDev/IntroductionToVulkan "Уроки Vulkan от Intel — GitHub"
 [DARTeamVK]: http://vk.com/dev.ani.resu.team "Группа в ВКонтакте"
 [SpecTranslate]: http://vbomesh.blogspot.ru/p/vulkan-api.html "Перевод спецификации Vulkan API"
-[VulkanDescriptionHabr]: habr.ru/p/283490/
+[VulkanDescriptionHabr]: http://habr.ru/p/283490/
 
 [T00]: ./00Device/Tutorial.md "Перейти к уроку"
 [T01]: ./01LayersAndExtensions/Tutorial.md "Перейти к уроку"
