@@ -30,6 +30,10 @@ int main()
 	//добавление проверочных слоёв
 	r.AddInstanceLayer("VK_LAYER_LUNARG_standard_validation");
 	r.AddDeviceLayer("VK_LAYER_LUNARG_standard_validation");
+	#if RENDER_DOC
+	r.AddInstanceLayer("VK_LAYER_RENDERDOC_Capture");
+	r.AddDeviceLayer("VK_LAYER_RENDERDOC_Capture");
+	#endif
 	/* Первым делом, что нам нужно: это получить плоскость (surface), в которую мы будем помещать изображение.
 	 * Подробности смотрите внутри функции.
 	*/
@@ -144,9 +148,10 @@ int main()
 	ZM(sem_info);
 	sem_info.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
 	logger.UserLog("SEMAPHORE", "Creating semaphores.");
-	if (
-		vkCreateSemaphore(r.GetDevice(), &sem_info, nullptr, &sem_render_done) != VK_SUCCESS ||
-		vkCreateSemaphore(r.GetDevice(), &sem_info, nullptr, &sem_image_available) != VK_SUCCESS)
+	VkResult rsem1, rsem2;
+	rsem1 = vkCreateSemaphore(r.GetDevice(), &sem_info, nullptr, &sem_render_done);
+	rsem2 = vkCreateSemaphore(r.GetDevice(), &sem_info, nullptr, &sem_image_available);
+	if (rsem1 != VK_SUCCESS || rsem2 != VK_SUCCESS)
 	{
 		logger.UserError("SEMAPHORE", "Failed to create.");
 		vkDestroySemaphore(r.GetDevice(), sem_image_available, nullptr);
@@ -159,6 +164,7 @@ int main()
 		app.DeinitApplication();
 		return -1;
 	}
+
 	/* Заходя вперёд: первый будет сигналить о том, что мы завершили процесс рисования и можно отправилять
 	 * изображение на экран. Второй подскажет, когда можно рендерить изображение, если оно доступно.
 	 * Теперь необходимо записать буферы. Но мы также будем использовать барьеры.
