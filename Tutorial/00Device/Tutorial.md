@@ -426,7 +426,7 @@
 	} VkDeviceQueueCreateInfo;
 	
 + `sType` — тип структуры, в данном случае `VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO`.
-+ `pNext` — `NULL` или указатель на структуру из расширения.
++ `pNext` — `nullptr` или указатель на структуру из расширения.
 + `flags` — флаги зарезервированы для будущего использования.
 + `queueFamilyIndex` — индекс семейства, к которому будут пренадлежать очереди.
 + `queueCount` — количество очередей, которые нужно создать с этим семейством.
@@ -448,3 +448,113 @@
 
 #Устройство
 
+Для создания устройства, нам нужно заполнить следующую структуру:
+
+	typedef struct VkDeviceCreateInfo {
+		VkStructureType                    sType;
+		const void*                        pNext;
+		VkDeviceCreateFlags                flags;
+		uint32_t                           queueCreateInfoCount;
+		const VkDeviceQueueCreateInfo*     pQueueCreateInfos;
+		uint32_t                           enabledLayerCount;
+		const char* const*                 ppEnabledLayerNames;
+		uint32_t                           enabledExtensionCount;
+		const char* const*                 ppEnabledExtensionNames;
+		const VkPhysicalDeviceFeatures*    pEnabledFeatures;
+	} VkDeviceCreateInfo;
+	
++ `sType` — тип структуры, в данном случае `VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO`.
++ `pNext` — `nullptr` или указатель на структуру из расширения.
++ `flags` — флаги зарезервированы для будущего использования.
++ `queueCreateInfoCount` — количество структур `VkDeviceQueueCreateInfo`, которые вы хотите отправить.
++ `pQueueCreateInfos` — структуры `VkDeviceQueueCreateInfo`. Таким образом, можно создать несколько очередей с разными семействами (напомню, что одна структура `VkDeviceQueueCreateInfo` может принять лишь одно семейство).
++ `pEnabledFeatures` — функционал устройства. Если хотите оставить только **нужный** (*required*) — оставьте `nullptr`. Все доступные возможности можно получить с помощью функции `vkGetPhysicalDeviceFeatures`.
+ 
+Слои и расширения:
+
++ `enabledLayerCount`
++ `ppEnabledLayerNames`
++ `enabledExtensionCount`
++ `ppEnabledExtensionNames`
+
+Пример:
+
+	VkDeviceCreateInfo device_info;
+    memset(&device_info, 0, sizeof(device_info));
+	device_info.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
+	device_info.queueCreateInfoCount = 1;
+	device_info.pQueueCreateInfos = &device_queue_info;
+	
+Далее устройство можно создать. За это отвечает следующая функция:
+
+	VkResult vkCreateDevice(
+		VkPhysicalDevice                            physicalDevice,
+		const VkDeviceCreateInfo*                   pCreateInfo,
+		const VkAllocationCallbacks*                pAllocator,
+		VkDevice*                                   pDevice);
+
++ `physicalDevice` — физическое устройство, на основе которого создаётся логическое.
++ `pCreateInfo` — структура, содержащая информацию об устройстве.
++ `pAllocator` — указатель на структуру `VkAllocationCallbacks`, содержащие адреса функций управления памятью.
++ `pDevice` — указатель на хэндл устройства.
+
+Создать устройство можно таким образом:
+
+	VkDevice device = VK_NULL_HANDLE;
+	if (vkCreateDevice(gpu, &device_info, NULL, &device) != VK_SUCCESS)
+		return;
+		
+И так мы получим `device`. Теперь, разберём, какие ошибки могут быть.
+
++ `VK_SUCCESS
++ `VK_ERROR_OUT_OF_HOST_MEMORY
++ `VK_ERROR_OUT_OF_DEVICE_MEMORY
++ `VK_ERROR_INITIALIZATION_FAILED — неправильно заданы параметры или магия.
++ `VK_ERROR_LAYER_NOT_PRESENT
++ `VK_ERROR_EXTENSION_NOT_PRESENT
++ `VK_ERROR_TOO_MANY_OBJECTS — подали на создание **слишком много ~~яблок~~ объектов** (например — очередей).
++ `VK_ERROR_DEVICE_LOST — устройство ~~потрачено~~ потеряно.
+
+#Потеря устройства
+
+Теперь немного об ошибке device lost (потеря устройства). Сколько помню DX9, то такая ошибка могла возникнуть даже при закрытии окна, в которое мы что-либо рисовали, если оно было крепко привязано к устройству. В Vulkan потеря устройства может быть лишь по такому ряду причин:
+
++ Ошибка в устройстве, возможно вызванная вашими командами из приложения. В этом случае нужно уничтожить устройство, но перед этим нужно также уничтожить все его дочернии объекты — их хэндлы всё ещё дейсвительны, а некоторые команды могут также продолжать работу, и также могут вернуть как удачу, так и error — device lost. После этого также возможно создание логического устройства заново, и можно продолжить работу, если это не 2 пункт.
++ Отсоединение и/или потеря физического устройства. В этом случае создать логическое устройство заново нельзя — так как физическое устройство уже не может работать.
++ Ошибка в системе, повреждение памяти. В этом случае Vulkan не гарантирует стабильное выполнение команд.
+
+Во всех остальных случаях устройство потеряно быть не может.
+
+#Уничтожение (cleaning up)
+
+Для уничтожения устройства понадобится следующая функция:
+
+	void vkDestroyDevice(
+		VkDevice						device,
+		const VkAllocationCallbacks*	pAllocator);
+
++ `device` — хэндл устройства.
++ `pAllocator` — указатель на структуру `VkAllocationCallbacks`, содержащие адреса функций управления памятью.
+
+Для уничтожения экземпляра:
+
+	void vkDestroyInstance(
+		VkInstance						instance,
+		const VkAllocationCallbacks*	pAllocator);
+	
++ `device` — хэндл экземпляра.
++ `pAllocator` — указатель на структуру `VkAllocationCallbacks`, содержащие адреса функций управления памятью.
+
+То есть ничего сложного:
+
+	vkDestroyDevice(device, NULL);
+	vkDestroyInstance(instance, NULL);
+	
+#Заключение
+
+Готово! Кумамон одобряет, мы сожгли всё, что породили. Даже пройдя через такие трудные методы.
+К слову, один человек во время GDC 2016 сказал: "Vulkan API старались сделать максимально понятным. Но понятный — не значит простой." Да, Vulkan API действительно отличается от того же DirectX или OpenGL, хотя, конечно же, есть и некоторые схожие места. Но для чего же его усложнили? Для того, чтобы программист решал, что и в какой мере нагружать, это раз, а второе, чтобы оптимизировать работу и "общение" между видеокартой и процессором. Теперь мы можем просто отправить пачкой команды в видеокарту, а не каждый раз теребить по одной команде "сделай то, сделай это". Ну и другие полезные вещи в Vulkan API тоже есть.
+
+Спасибо за прочтение урока.
+Если вы хотите меня поддержать, прикрепляю кошель с Я.Денег: 410012557544062.
+Ну или просто жмя по [ссылке](https://money.yandex.ru/to/410012557544062 "Яндекс.Деньги").

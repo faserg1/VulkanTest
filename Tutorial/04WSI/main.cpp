@@ -30,10 +30,7 @@ int main()
 	//добавление проверочных слоёв
 	r.AddInstanceLayer("VK_LAYER_LUNARG_standard_validation");
 	r.AddDeviceLayer("VK_LAYER_LUNARG_standard_validation");
-	#if RENDER_DOC
-	r.AddInstanceLayer("VK_LAYER_RENDERDOC_Capture");
-	r.AddDeviceLayer("VK_LAYER_RENDERDOC_Capture");
-	#endif
+
 	/* Первым делом, что нам нужно: это получить плоскость (surface), в которую мы будем помещать изображение.
 	 * Подробности смотрите внутри функции.
 	*/
