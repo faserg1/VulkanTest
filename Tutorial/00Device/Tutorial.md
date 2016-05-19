@@ -108,4 +108,343 @@
 	#endif
         
 Как уже видно, хэндлы распределяются на **отправляемые** (*dispatchable*) и **не отправляемые** (*non-dispatchable*). Первые отправляются в функции как главный объект, с которым мы работаем, вторые наоборот — являются второстепенными. Также первые, это указатель на реально существующие данные, а вслучае со вторыми, это не обязательно указатель на существующие данные. В нашем случае, отправляемыми являются: `VkInstance`, `VkPhysicalDevice`, `VkDevice`, `VkQueue`, `VkCommandBuffer`. Все остальные являются не отправляемыми.
+Объявим хэндл:
+
+	VkInstance instance = VK_NULL_HANDLE;
+	
+Пока он будет нулевым. Теперь результат:
+
+	VkResult create_instance_result;
+	
+От этого результата будет зависить дальнейшая работа приложения. Создаём экземпляр:
+
+	create_instance_result = vkCreateInstance(&instance_info, nullptr, &instance);
+	
+Теперь подробнее рассмотрим функцию `vkCreateInstance`.
+
+	VkResult vkCreateInstance(
+		const VkInstanceCreateInfo*                 pCreateInfo,
+		const VkAllocationCallbacks*                pAllocator,
+		VkInstance*                                 pInstance);
+	
++ `pCreateInfo` — это указатель на обязательно заполненную структуру `VkInstanceCreateInfo`.
++ `pAllocator` — указатель на структуру `VkAllocationCallbacks`, содержащие адреса функций управления памятью. Если нам это не нужно, можно оставить `nullptr`.
++ `pInstance` — указатель на хэндл, который мы получим при успешном завершении функции.
+
+И так, какие могут быть результаты?
+
++ `VK_SUCCESS` — всё хорошо, всё получилось.
++ `VK_ERROR_OUT_OF_HOST_MEMORY` — не хватает памяти хоста (оперативной памяти).
++ `VK_ERROR_OUT_OF_DEVICE_MEMORY` — не хватает памяти устройства (видеопамяти).
++ `VK_ERROR_INITIALIZATION_FAILED` — магия, провалилась инициализация, внутренняя ошибка.
++ `VK_ERROR_LAYER_NOT_PRESENT` — указанный слой не может быть загружен.
++ `VK_ERROR_EXTENSION_NOT_PRESENT` — указанное расширение не может быть загружено.
++ `VK_ERROR_INCOMPATIBLE_DRIVER` — пользователь не поставил новые драйвера или всё гораздо хуже. Т.е. нет драйвера, который бы поддерживал заданную версию `apiVersion` в `VkApplicationInfo` или драйвер отсутствует вовсе.
+
+После вызова функции, можно проверить результат `create_instance_result`. В добавок, можно сказать, что различные экземпляры друг на друга не влияют, а также, прежде чем разрушить экземпляр, нужно разрушить и все дочерние объекты.
+А теперь, к главному!
+
+#Устройства, семейства, очереди
+**Устройство** — это инструмент, позволяющий рисовать и вычислять. В Vulkan, в отлчиии от других API есть разделение на **физическое** и **логическое** устройство. Прежде чем создать логическое устройсто, которое будет использовано в приложении, необходимо выбрать для него физическое, подобрав необходимые параметры. Поэтому, для начала нужно получить список физических устройств с помощью функции `vkEnumeratePhysicalDevices`. 
+
+##Физические устройства
+Физическим устройством может являтся видеокарта (дискретный GPU), встроенный графический процессор или что-либо ещё (подробнее об этом чуть ниже).
+
+	VkResult vkEnumeratePhysicalDevices(
+		VkInstance                                  instance,
+		uint32_t*                                   pPhysicalDeviceCount,
+		VkPhysicalDevice*                           pPhysicalDevices);
+		
++ `instance` — экземпляр Vulkan.
++ `pPhysicalDeviceCount` — указатель на количество физических устройств.
++ `pPhysicalDevices` — массив фиических устройств.
+
+Эту функцию можно использовать двумя способами. Первый способ — это получить количество физических устройств. Для этого нужно `pPhysicalDevices` оставить `VK_NULL_HANDLE`, но `pPhysicalDeviceCount` должен быть действительным указателем. Так, `*pPhysicalDeviceCount` (т.е. значение, на которое ссылается указатель) станет равным количеству физических устройств.
+
+Второй способ — получить сами устройства. Тогда `pPhysicalDevices` должен быть действительным указателем на область памяти/массивом, который будет принимать значения, а также `*pPhysicalDeviceCount` — максимальное количество, которое может принять массив (и меньше, если необходимо).
+
+Результатами могут быть:
++ `VK_SUCCESS` — всё хорошо, нет проблем.
++ `VK_INCOMPLETE` — всё хорошо, но были получены не все данные (в данном случае — не все хэндлы физических устройств).
++ `VK_ERROR_OUT_OF_HOST_MEMORY` — не хватает памяти хоста.
++ `VK_ERROR_OUT_OF_DEVICE_MEMORY` — не хватает памяти устройства.
++ `VK_ERROR_INITIALIZATION_FAILED` — магия.
+
+Вот пример, как можно получить все хэндлы без потерь:
+
+	uint32_t gpu_count;
+	if (vkEnumeratePhysicalDevices(instance, &gpu_count, VK_NULL_HANDLE) != VK_SUCCESS)
+		return;
+	std::vector<VkPhysicalDevice> gpu_list(gpu_count);
+	if (vkEnumeratePhysicalDevices(instance, &gpu_count, gpu_list.data()) != VK_SUCCESS)
+		return;
+		
+Для этого нужно будет вызвать функцию два раза. Первый раз, чтобы узнать точное количество физических устройств и подготовить для хэндлов место, второй раз, получить все физические устройства.
+
+Теперь, можно узнать все подробности об устройстве. Есть несколько функций, которые позволяют получить эти подробности:
+
++ `vkGetPhysicalDeviceFeatures` — возвращает поддерживаемый функционал.
++ `vkGetPhysicalDeviceFormatProperties` — возвращает поддерживаемые форматы.
++ `vkGetPhysicalDeviceImageFormatProperties` — возвращает поддерживаемые форматы изображений.
++ `vkGetPhysicalDeviceProperties` — возвращает свойства устройства (немного подробнее ниже).
++ `vkGetPhysicalDeviceMemoryProperties` — возвращает свойства памяти устройства.
++ `vkGetPhysicalDeviceQueueFamilyProperties` — возвращает свойства семейств очередей устройства (подробнее ниже).
+
+Например, можно узнать тип устройства, его имя и лимиты. Для этого есть функция `vkGetPhysicalDeviceProperties`.
+
+	void vkGetPhysicalDeviceProperties(
+		VkPhysicalDevice				physicalDevice,
+		VkPhysicalDeviceProperties*		pProperties);
+		
++ `physicalDevice` — хэндл физичского устройства, свойства которого вы хотите получить.
++ `pProperties` — указатель на структуру, принимающую свойства.
+
+Функция не возвращает значения, ибо она всегда должна выполнятся стабильно. Сама структура выглядит таким образом:
+
+	typedef struct VkPhysicalDeviceProperties {
+		uint32_t							apiVersion;
+		uint32_t							driverVersion;
+		uint32_t							vendorID;
+		uint32_t							deviceID;
+		VkPhysicalDeviceType				deviceType;
+		char								deviceName[VK_MAX_PHYSICAL_DEVICE_NAME_SIZE];
+		uint8_t								pipelineCacheUUID[VK_UUID_SIZE];
+		VkPhysicalDeviceLimits				limits;
+		VkPhysicalDeviceSparseProperties	sparseProperties;
+	} VkPhysicalDeviceProperties;
+	
++ `apiVersion` — версия API, которую поддерживает драйвер этого устройства. Расшифровывается через макровызовы, упомянутые выше.
++ `driverVersion` — версия драйвера для этого устройства. Расшифровывается через макровызовы, упомянутые выше.
++ `vendorID` — уникальный идентификатор для vendor'а (издателя).
++ `deviceID` — уникальный идентификатор устройства.
++ `deviceType` — тип устройства.
++ `deviceName` — имя устройства.
++ `pipelineCacheUUID` — уникальная и универсальная подпись, обозначающая комбинацию физического устройства и драйвера.
++ `limits` — лимиты физического устройства. 
++ `sparseProperties` — свойства разрежженой памяти.
+
+Нменого подробнее о последних двух структурах:
+
+	typedef struct VkPhysicalDeviceLimits {
+		uint32_t              maxImageDimension1D;
+		uint32_t              maxImageDimension2D;
+		uint32_t              maxImageDimension3D;
+		uint32_t              maxImageDimensionCube;
+		uint32_t              maxImageArrayLayers;
+		uint32_t              maxTexelBufferElements;
+		uint32_t              maxUniformBufferRange;
+		uint32_t              maxStorageBufferRange;
+		uint32_t              maxPushConstantsSize;
+		uint32_t              maxMemoryAllocationCount;
+		uint32_t              maxSamplerAllocationCount;
+		VkDeviceSize          bufferImageGranularity;
+		VkDeviceSize          sparseAddressSpaceSize;
+		uint32_t              maxBoundDescriptorSets;
+		uint32_t              maxPerStageDescriptorSamplers;
+		uint32_t              maxPerStageDescriptorUniformBuffers;
+		uint32_t              maxPerStageDescriptorStorageBuffers;
+		uint32_t              maxPerStageDescriptorSampledImages;
+		uint32_t              maxPerStageDescriptorStorageImages;
+		uint32_t              maxPerStageDescriptorInputAttachments;
+		uint32_t              maxPerStageResources;
+		uint32_t              maxDescriptorSetSamplers;
+		uint32_t              maxDescriptorSetUniformBuffers;
+		uint32_t              maxDescriptorSetUniformBuffersDynamic;
+		uint32_t              maxDescriptorSetStorageBuffers;
+		uint32_t              maxDescriptorSetStorageBuffersDynamic;
+		uint32_t              maxDescriptorSetSampledImages;
+		uint32_t              maxDescriptorSetStorageImages;
+		uint32_t              maxDescriptorSetInputAttachments;
+		uint32_t              maxVertexInputAttributes;
+		uint32_t              maxVertexInputBindings;
+		uint32_t              maxVertexInputAttributeOffset;
+		uint32_t              maxVertexInputBindingStride;
+		uint32_t              maxVertexOutputComponents;
+		uint32_t              maxTessellationGenerationLevel;
+		uint32_t              maxTessellationPatchSize;
+		uint32_t              maxTessellationControlPerVertexInputComponents;
+		uint32_t              maxTessellationControlPerVertexOutputComponents;
+		uint32_t              maxTessellationControlPerPatchOutputComponents;
+		uint32_t              maxTessellationControlTotalOutputComponents;
+		uint32_t              maxTessellationEvaluationInputComponents;
+		uint32_t              maxTessellationEvaluationOutputComponents;
+		uint32_t              maxGeometryShaderInvocations;
+		uint32_t              maxGeometryInputComponents;
+		uint32_t              maxGeometryOutputComponents;
+		uint32_t              maxGeometryOutputVertices;
+		uint32_t              maxGeometryTotalOutputComponents;
+		uint32_t              maxFragmentInputComponents;
+		uint32_t              maxFragmentOutputAttachments;
+		uint32_t              maxFragmentDualSrcAttachments;
+		uint32_t              maxFragmentCombinedOutputResources;
+		uint32_t              maxComputeSharedMemorySize;
+		uint32_t              maxComputeWorkGroupCount[3];
+		uint32_t              maxComputeWorkGroupInvocations;
+		uint32_t              maxComputeWorkGroupSize[3];
+		uint32_t              subPixelPrecisionBits;
+		uint32_t              subTexelPrecisionBits;
+		uint32_t              mipmapPrecisionBits;
+		uint32_t              maxDrawIndexedIndexValue;
+		uint32_t              maxDrawIndirectCount;
+		float                 maxSamplerLodBias;
+		float                 maxSamplerAnisotropy;
+		uint32_t              maxViewports;
+		uint32_t              maxViewportDimensions[2];
+		float                 viewportBoundsRange[2];
+		uint32_t              viewportSubPixelBits;
+		size_t                minMemoryMapAlignment;
+		VkDeviceSize          minTexelBufferOffsetAlignment;
+		VkDeviceSize          minUniformBufferOffsetAlignment;
+		VkDeviceSize          minStorageBufferOffsetAlignment;
+		int32_t               minTexelOffset;
+		uint32_t              maxTexelOffset;
+		int32_t               minTexelGatherOffset;
+		uint32_t              maxTexelGatherOffset;
+		float                 minInterpolationOffset;
+		float                 maxInterpolationOffset;
+		uint32_t              subPixelInterpolationOffsetBits;
+		uint32_t              maxFramebufferWidth;
+		uint32_t              maxFramebufferHeight;
+		uint32_t              maxFramebufferLayers;
+		VkSampleCountFlags    framebufferColorSampleCounts;
+		VkSampleCountFlags    framebufferDepthSampleCounts;
+		VkSampleCountFlags    framebufferStencilSampleCounts;
+		VkSampleCountFlags    framebufferNoAttachmentsSampleCounts;
+		uint32_t              maxColorAttachments;
+		VkSampleCountFlags    sampledImageColorSampleCounts;
+		VkSampleCountFlags    sampledImageIntegerSampleCounts;
+		VkSampleCountFlags    sampledImageDepthSampleCounts;
+		VkSampleCountFlags    sampledImageStencilSampleCounts;
+		VkSampleCountFlags    storageImageSampleCounts;
+		uint32_t              maxSampleMaskWords;
+		VkBool32              timestampComputeAndGraphics;
+		float                 timestampPeriod;
+		uint32_t              maxClipDistances;
+		uint32_t              maxCullDistances;
+		uint32_t              maxCombinedClipAndCullDistances;
+		uint32_t              discreteQueuePriorities;
+		float                 pointSizeRange[2];
+		float                 lineWidthRange[2];
+		float                 pointSizeGranularity;
+		float                 lineWidthGranularity;
+		VkBool32              strictLines;
+		VkBool32              standardSampleLocations;
+		VkDeviceSize          optimalBufferCopyOffsetAlignment;
+		VkDeviceSize          optimalBufferCopyRowPitchAlignment;
+		VkDeviceSize          nonCoherentAtomSize;
+	} VkPhysicalDeviceLimits;
+	
+	typedef struct VkPhysicalDeviceSparseProperties {
+		VkBool32    residencyStandard2DBlockShape;
+		VkBool32    residencyStandard2DMultisampleBlockShape;
+		VkBool32    residencyStandard3DBlockShape;
+		VkBool32    residencyAlignedMipSize;
+		VkBool32    residencyNonResidentStrict;
+	} VkPhysicalDeviceSparseProperties;
+	
+Узнать о них поближе вы сможете прочитав спецификацию Vulkan. А вот информация про типы устройств: 
+
+#Семейства очередей
+И так, что же за семейства очередей и с чем их идят? Напоминаем, что устройства могут разделятся по предназначениям, хотя многие из них будут универсальными. Например, устройства разделяются на 4 вида работы:
++ *графика* — устройство может рисовать 3D/2D объекты.
++ *вычисления* — устройство может производить вычисления.
++ *копирование* — устройство может копировать и переносить информацию.
++ *работа с разрежженой памятью* — это по большей части уникальная особенность функционала, но тем не менее, флаг находится здесь.
+
+Все эти флаги собираются в различные семейства, которые могут или не могут выполнять те или иные возможности, указанные флагами. Сама очередь представляет собой место, куда попадают команды, чтобы в последствии они могли быть исполнены устройством. Команды, принадлежащие определённому семейству, не могут быть посланы в очередь, которая не поддерживает это семейство. Семейство может содержать как один флаг, так и все. Vulkan старается объединять семейства с одинаковыми способности в одно целое. Каждое семейство может иметь ограниченное число очередей.
+
+К примеру: NVIDIA GeForce GTX 760 содержит 1 семейство поддерживающее все флаги.  Семейство содержит 16 очередей. Так обычно и со всеми другими картами NVIDIA.
+
+Получить информацию о семействах может следующая функция:
+
+	void vkGetPhysicalDeviceQueueFamilyProperties(
+		VkPhysicalDevice			physicalDevice,
+		uint32_t*					pQueueFamilyPropertyCount,
+		VkQueueFamilyProperties*	pQueueFamilyProperties);
+		
++ `physicalDevice` — хэндл физического устройства.
++ `pQueueFamilyPropertyCount` — указатель на количество семейств.
++ `pQueueFamilyProperties` — семейства.
+
+Как вы уже догадались, эта функция работает также, как и `vkEnumeratePhysicalDevices`. Напомню, что если последний аргумент — `VK_NULL_HANDLE`, то второй получит количество семейств, иначе, третий получит столько семейств, сколько указано во втором. Подробнее о структуре:
+
+	typedef struct VkQueueFamilyProperties {
+		VkQueueFlags    queueFlags;
+		uint32_t        queueCount;
+		uint32_t        timestampValidBits;
+		VkExtent3D      minImageTransferGranularity;
+	} VkQueueFamilyProperties;
+	
++ `queueFlags` — флаги семейства (поддерживаемая работа).
++ `queueCount` — максимальное количество очередей.
++ `timestampValidBits` — число доступных битов для `vkCmdWriteTimestamp`, 0 если вовсе не поддерживает.
++ `minImageTransferGranularity` — минимальная "зернистость" поддерживаемая при копировании изображения.
+
+Сами флаги бывают следующими:
+
++ `VK_QUEUE_GRAPHICS_BIT` — поддерживает графику.
++ `VK_QUEUE_COMPUTE_BIT` — поддерживают вычисления.
++ `VK_QUEUE_TRANSFER_BIT` — поддерживает копирование.
++ `VK_QUEUE_SPARSE_BINDING_BIT` — поддерживает работу с разрежженной памятью.
+
+В примере будет задействована лишь одно, первое по индексу устройство.
+
+	VkPhysicalDevice gpu = gpu_list[0];
+	uint32_t family_count = 0;
+	vkGetPhysicalDeviceQueueFamilyProperties(gpu, &family_count, VK_NULL_HANDLE);
+	std::vector<VkQueueFamilyProperties> family_properties_list(family_count);
+	vkGetPhysicalDeviceQueueFamilyProperties(gpu, &family_count, family_properties_list.data());
+	
+	uint32_t valid_family_index = (uint32_t) -1;
+	for (uint32_t i = 0; i < family_count; i++) //листаем все семейства.
+	{
+		VkQueueFamilyProperties &properties = family_properties_list[i];
+		if (properties.queueFlags & VK_QUEUE_GRAPHICS_BIT)
+		{
+			if (valid_family_index == (uint32_t) -1)
+				valid_family_index = i;
+		}
+	}
+	if (valid_family_index == (uint32_t) -1)
+		return;
+		
+Так можно определить, поддерживает ли устройство по индексу 0 графику вообще, а также определить индекс семейства, которое поддерживает графику. Так же, вам может понадобится хранить индексы семейств (или проверять уже полученный), которые могут вычислять, копировать, поддерживать рарежженную память, а также выводить картинку на экран (о том, как проверить семейство на это будет в уроке 04).
+
+В предыдущем примере мы получили `valid_family_index`, теперь мы точно знаем, что устройство, а именно это семейство поддерживает графику. Теперь нужно создать логическое устройство, но для начала нам нужно указать для него информацию об очередях.
+
+#Очереди
+
+Информацию об очередях, которые должны быть в устройстве, Vulkan получает с помощью этой структуры:
+
+	typedef struct VkDeviceQueueCreateInfo {
+		VkStructureType             sType;
+		const void*                 pNext;
+		VkDeviceQueueCreateFlags    flags;
+		uint32_t                    queueFamilyIndex;
+		uint32_t                    queueCount;
+		const float*                pQueuePriorities;
+	} VkDeviceQueueCreateInfo;
+	
++ `sType` — тип структуры, в данном случае `VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO`.
++ `pNext` — `NULL` или указатель на структуру из расширения.
++ `flags` — флаги зарезервированы для будущего использования.
++ `queueFamilyIndex` — индекс семейства, к которому будут пренадлежать очереди.
++ `queueCount` — количество очередей, которые нужно создать с этим семейством.
++ `pQueuePriorities` — приоритеты семейств.
+
+Пример. Вы хотите создать *одну* очередь с семейством, которое было недавно получено (**`valid_family_index`**):
+
+	float device_queue_priority[] = {1.0f}; //приоритеты
+	
+	VkDeviceQueueCreateInfo device_queue_info;
+    memset(&device_queue_info, 0, sizeof(device_queue_info));
+	device_queue_info.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
+	
+	device_queue_info.queueCount = 1;
+	device_queue_info.queueFamilyIndex = valid_family_index;
+	device_queue_info.pQueuePriorities = device_queue_priority;
+	
+**Приоритеты** — это массив `float` значений от **0.f** (*низшего приоритета*) до **1.f** (*высшего приоритета*). Чем выше приоритет — тем больше времени будет уделяться этой очереди.
+
+#Устройство
 
