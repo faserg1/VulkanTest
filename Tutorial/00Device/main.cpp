@@ -39,7 +39,6 @@ int main()
 	app_info.apiVersion = VK_API_VERSION;
 	#endif
 	app_info.applicationVersion = VK_MAKE_VERSION(0, 1, 0);
-
 	//Информация о экземпляре
 
 	VkInstanceCreateInfo instance_info; //Создаём...

@@ -1,7 +1,4 @@
-/* В этом уроке раскажу подробнее про слои Vulkan на примере Google & LunarG
- * Validation Layers (проверочные слои), т.е. фактически — отладочные.
- * Этот урок также будет с большим количеством комментариев, но тем не меннее,
- * для изученного будет уделён лишь небольшой комментарий.
+/* В этом уроке: подробнее про слои и расширения Vulkan.
  * Все интересующие вас подробности смотрите здесь:
  * https://www.khronos.org/registry/vulkan/specs/1.0-wsi_extensions/pdf/vkspec.pdf
  * © Серый Волк.
@@ -33,10 +30,11 @@ int main()
 	memset(&app_info, 0, sizeof(app_info));
 	app_info.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
 	app_info.pApplicationName = app_name;
-	/* Можно использовать новую версию таким способом, но учтите, что это влияет только на драйвер.
-	 * Поэтому, если у вас не работает из-за старых драйверов, можно опустить версию до 1.0.3.
-	*/
-	app_info.apiVersion = VK_MAKE_VERSION(1, 0, 5);
+	#ifdef VK_API_VERSION_1_0
+	app_info.apiVersion = VK_API_VERSION_1_0;
+	#else
+	app_info.apiVersion = VK_API_VERSION;
+	#endif
 	app_info.applicationVersion = VK_MAKE_VERSION(0, 1, 0);
 
 	VkResult res; //заранее подготовим переменную для результата, она нам понадобится несколько раз.

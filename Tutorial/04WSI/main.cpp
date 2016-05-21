@@ -62,7 +62,14 @@ int main()
 	*/
 	r.PrepareGPU(); //поиск и подготовка GPU для VkDevice
 	//Затем подключим необходимые расширения, подготвим swapchain и создадим устройство.
-	if (!(r.EnableSwapchains(true) && r.PrepareSwapchain() && r.CreateDevice()))
+	logger.UserLog("SC", "Enabling.");
+	bool e_sc, p_sc, dev;
+	e_sc = r.EnableSwapchains(true);
+	logger.UserLog("SC", "Preparing.");
+	p_sc = r.PrepareSwapchain();
+	logger.UserLog("Device", "Creating.");
+	dev = r.CreateDevice();
+	if (!(e_sc && p_sc && dev))
 	{
 		logger.DetachLogger(&r);
 		r.DestroySurface();
@@ -71,6 +78,7 @@ int main()
 		app.DeinitApplication();
 		return -1;
 	}
+	logger.UserLog("Render", "Done.");
 	/* После того, как мы создали устройство, теперь можно и создать для него swapchain'ы. Конечно же, их может быть несколько,
 	 * если вы собираетесь рисовать в различные окна с одного устройства (Vulkan даже поможет в этом деле своими командными
 	 * буферами, так как можно рисовать не один за другим, а несколько сразу, главное — правильно всё настроить).
@@ -88,6 +96,7 @@ int main()
 		app.DeinitApplication();
 		return -1;
 	}
+	logger.UserLog("SC", "Created.");
 	/* Теперь надо бы проверить работу нашего приложения, пусть это будет обычный Clear Screen.
 	 * Но, тут наступают некоторые проблемы с синхронизаций и выбором кадра. У нас есть две функции:
 	 * vkAcquireNextImageKHR и vkQueuePresentKHR. Первая запрашивает из изображений  swapchain свободное,
@@ -221,10 +230,10 @@ int main()
 		VkImageMemoryBarrier barrier_from_present_to_clear;
 		ZM(barrier_from_present_to_clear);
 		barrier_from_present_to_clear.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-		/* Говорим, что предыдущая стадия доступа к памяти — чтение,
-		 * когда наше изображение отображалось на экран.
+		/* Мы "не знаем" ничего о том, что происходило с изображением раньше,
+		 * поэтому маска предыдущего доступа — 0.
 		*/
-		barrier_from_present_to_clear.srcAccessMask = VK_ACCESS_MEMORY_READ_BIT;
+		barrier_from_present_to_clear.srcAccessMask = 0;
 		/* Следуящая стадия — стадия записи. Но так как запись будет не обычной, а переносом данных
 		 * из одной области в другую (т.е. эта память не обязательно хранится на устройстве),
 		 * то это не VK_ACCESS_MEMORY_WRITE_BIT, а VK_ACCESS_TRANSFER_WRITE_BIT.
@@ -358,6 +367,8 @@ int main()
 			VK_NULL_HANDLE, //забор, который будет просигнален (тоже, макисмум - один)
 			&image_index ); //получаем индекс изображения
 		bool must_stop = false;
+		if (result != VK_SUCCESS)
+			logger.UserLog("Lol", "Smth");
 		switch (result)
 		{
 		case VK_SUBOPTIMAL_KHR: //если наша плоскость изменилась - самое время пересоздать swapchain
@@ -386,11 +397,13 @@ int main()
 		present_info.pImageIndices = &image_index;
 		//отправляем команды в очередь, без ожидания их выполнения на хосте
 		result = vkQueueSubmit(r.GetQueue(r.GetFamIndex(true)), 1, &submit_info, VK_NULL_HANDLE);
-		if (must_stop)
+		if (result != VK_SUCCESS)
+			logger.UserLog("Lol", "Smth");
+		/*if (must_stop)
 		{
 			logger.UserError("LOOP", "Loop stops");
 			break;
-		}
+		}*/
 		//отправляем команду показа изображения.
 		result = vkQueuePresentKHR(r.GetQueue(r.GetFamIndex(true)), &present_info);
 		switch (result)

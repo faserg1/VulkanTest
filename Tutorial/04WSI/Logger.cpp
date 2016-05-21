@@ -151,6 +151,7 @@ bool Logger::AttachLogger(Render *r)
 			return false;
 		return true;
 	}
+	return false;
 }
 
 void Logger::DetachLogger(Render *r)
