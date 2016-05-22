@@ -16,7 +16,10 @@ class Window
 public:
 	Window();
 	~Window();
-	
+
+	void SetFPS(float fps);
+	void GetWindowSize(unsigned int &width, unsigned int &height);
+
 	#if defined(_WIN32)
 	HWND GetHandle();
 	#endif

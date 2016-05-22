@@ -4,8 +4,8 @@
 #include "common.h"
 
 /* Конечно, можно было AppProc настроить на UserData (GWLP_USERDATA), когда прилетает сообщение, но сделаем проще:
- * через глобаьные переменные. А также, я их скрыл из видимости линкощика, поместив их в безымянное пространство имён. 
-*/ 
+ * через глобаьные переменные. А также, я их скрыл из видимости линкощика, поместив их в безымянное пространство имён.
+*/
 
 namespace
 {
@@ -144,6 +144,9 @@ LRESULT CALLBACK Application::AppProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM
 	{
 		case WM_CLOSE:
 			PostQuitMessage(0);
+			break;
+        default:
+			break;
 	}
 	return DefWindowProcW(hWnd, msg, wParam, lParam);
 }

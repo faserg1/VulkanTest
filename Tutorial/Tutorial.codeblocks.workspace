@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
+<CodeBlocks_workspace_file>
+	<Workspace title="Tutorial">
+		<Project filename="00Device/00Device.cbp" />
+		<Project filename="01LayersAndExtensions/01LayersAndExtensions.cbp" />
+		<Project filename="02Commands/02Commands.cbp" />
+		<Project filename="03Sync/03Sync.cbp" />
+		<Project filename="04WSI/04WSI.cbp" />
+		<Project filename="05Allocation/05Allocation.cbp" />
+		<Project filename="06ResourceCreation/06ResourceCreation.cbp" />
+	</Workspace>
+</CodeBlocks_workspace_file>
