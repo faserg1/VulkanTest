@@ -38,7 +38,7 @@ int main()
 	#else
 	app_info.apiVersion = VK_API_VERSION;
 	#endif
-	app_info.applicationVersion = VK_MAKE_VERSION(0, 1, 0);
+	app_info.applicationVersion = VK_MAKE_VERSION(0, 0, 35);
 	//Информация о экземпляре
 
 	VkInstanceCreateInfo instance_info; //Создаём...
@@ -61,7 +61,7 @@ int main()
 			default:
 				std::wcerr << L"Что-то не так...\n"; //..ну и так далее..
 		}
-		exit(1); //..ведь в конце концов приложение всё равно дало сбой.
+		return -1; //..ведь в конце концов приложение всё равно дало сбой.
 	}
 	else
 		std::wcout << L"Экземпляр Vulkan создан.\n";
@@ -74,7 +74,7 @@ int main()
 	if (vkEnumeratePhysicalDevices(instance, &gpu_count, VK_NULL_HANDLE) != VK_SUCCESS)
 	{
 		std::wcerr << L"Посчитать физические устройства не удалось :(\n";
-		exit(1);
+		return -1;
 	}
 	//тут мы можем немного поиздеваться над юзверями.
 	std::wcout << L"Человек, я всё от тебе знаю!\n";
@@ -83,7 +83,7 @@ int main()
 	if (vkEnumeratePhysicalDevices(instance, &gpu_count, gpu_list.data()) != VK_SUCCESS)
 	{
 		std::wcerr << L"Заполучить твои физические устройства не удалось, но я приду за ними в следующий раз!\n";
-		exit(1);
+		return -1;
 	}
 	//Свойства устройоств
 	VkPhysicalDeviceProperties prop;
@@ -106,7 +106,7 @@ int main()
 	*/
 	VkPhysicalDevice gpu = gpu_list[0]; //мы просто копируем его.
 	uint32_t family_count = 0; //Кол-во семейств.
-	vkGetPhysicalDeviceQueueFamilyProperties(gpu, &family_count, VK_NULL_HANDLE);
+	vkGetPhysicalDeviceQueueFamilyProperties(gpu, &family_count, nullptr);
 	std::wcout << L"Я нашёл " << family_count << L" семейств. Похвали меня!\n";
 	std::vector<VkQueueFamilyProperties> family_properties_list(family_count);
 	vkGetPhysicalDeviceQueueFamilyProperties(gpu, &family_count, family_properties_list.data());
@@ -145,7 +145,7 @@ int main()
 	if (valid_family_index == (uint32_t) -1)
 	{
 		std::wcerr << L"Мы не нашли подходящее семейство! Сворачиваемся!\n";
-		exit(1);
+		return -1;
 	}
 	else //Ну а иначе всё хорошо..
 	{
@@ -180,7 +180,7 @@ int main()
 	if (vkCreateDevice(gpu, &device_info, NULL, &device) != VK_SUCCESS)
 	{
 		std::wcerr << L"Чёрт! А я был так близко...\n";
-		exit(1);
+		return -1;
 	}
 	std::wcout << L"Ура! Получилось! Device наш!\n";
 
