@@ -23,25 +23,25 @@ struct _vkglobals
 	VkInstance instance;
 	VkDevice device;
 	VkDebugReportCallbackEXT debug_report_callback;
-	
+
 	uint32_t family_index;
-	
+
 	std::vector<const char *>
 		instance_layers, instance_extensions,
 		device_layers, device_extensions;
-		
+
 	PFN_vkCreateDebugReportCallbackEXT fvkCreateDebugReportCallbackEXT;
 	PFN_vkDestroyDebugReportCallbackEXT fvkDestroyDebugReportCallbackEXT;
-	
+
 	//Зполнение нулями. хотя здесь можно было бы и memset применеть на всю структуру.
-	inline _vkglobals() 
+	inline _vkglobals()
 	{
 		instance = VK_NULL_HANDLE;
 		device = VK_NULL_HANDLE;
 		debug_report_callback = VK_NULL_HANDLE;
-		
+
 		family_index = (uint32_t) -1;
-		
+
 		fvkCreateDebugReportCallbackEXT = NULL;
 		fvkDestroyDebugReportCallbackEXT = NULL;
 	}
@@ -75,112 +75,32 @@ int main()
 	#endif
 	if (!InitDevice()) //инициализация устройства
 		return 3;
-	/* Прежде чем мы продолжим, стоит уяснить одну очень простую и даже очевидную вещь: все объекты,
-	 * созданные с помощью VkDevice — приватны для этого устройства, т.е. их нельзя использовать с любым другим
-	 * устройством.
-	 * 
-	 * И так, настало время командам. Вспомним про то, что у нас есть очереди (в данном случае одна), которые эти команды
-	 * будут принимать. Но как же мы будем их указывать? Для этого есть специальные хэндлы — VkQueue. Надо только получить
-	 * этот хэндл. Для этого есть функция vkGetDeviceQueue, у которой есть следующие параметры:
-	 * device — собственно, наше устройство, где мы и подготовили заранее очередь.
-	 * queueFamilyIndex — семейство очереди, которой хотим получить.
-	 * queueIndex — индекс очереди
-	 * pQueue — последний выходной параметр, хэндл очереди
-	 * Функция не возвращает значений, так что обрабатывать нечего (только хэндл на 0).
-	 * И так, подробнее о том, какая же очередь нам нужна и как это определить.
-	 * Вспомним о том, что фактически мы можем создать несколько очередей как разных, так и одинаковых семейств.
-	 * Что касается разных — то тут всё ясно, мы сразу указываем семейство, из которого хотим получить очередь.
-	 * Если это одинаковые, то разница только в приоритетах. Никаких осложнений с этим нет — всё по порядку.
-	 * Главное не запрашивать очередь с индексом больше, чем кол-во созданных.
-	 * Мы создали только одну очередь одного семейства, поэтому давайте сразу получим её.
-	*/ 
-	VkQueue queue;
+	VkQueue queue = VK_NULL_HANDLE;
 	vkGetDeviceQueue(vkGlobals.device, vkGlobals.family_index, 0, &queue);
-	
-	/* Отлично, очередь получена, теперь туда можно отправлять командные буферы. Но мы снова и снова будем отвлекаться на
-	 * теоритическую часть. И так, в Vulkan для создания командных буферов есть пул (бассейн?), откуда мы можем выделить
-	 * отдельный буфер.
-	*/ 
+
 	VkCommandPoolCreateInfo pool_create_info;
 	ZM(pool_create_info);
-	//Заполняем sType, pNext должен быть NULL;
 	pool_create_info.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
-	/*
-	 * Теперь надо привзяать пул к определённому семейству. Все командные буферы, создаваемые из этого пула нельзя будет отправить
-	 * в очередь, которая привязана к другому семейству. Для этого нужно будет создать новый пул и привязать его к другому семейству.
-	*/
 	pool_create_info.queueFamilyIndex = vkGlobals.family_index;
-	/* Дальше флаги. В нашем случае, их можно заполнить. Флаги могут быть такими:
-	 * VK_COMMAND_POOL_CREATE_TRANSIENT_BIT — в этом пуле будут буферы с короткой жизнью. Т.е. буферы, которые вы создадите, могут
-	 * быть мгновенно освобождены/уничтожены после первого же использования, грубо говоря, происходит специальная оптимизация.
-	 * VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT — в этом пуле будут буферы, которые вы собираетесь перезаписать. Перезаписать
-	 * их можно будет с помощтю команды vkResetCommandBuffer, которая опустошит буфер, или с помощью vkBeginCommandBuffer, которая
-	 * также опустошит буфер и сразу же начнёт записывать новые команды. В противном случае (без этого флага), можно будет
-	 * перезаписать буферы через функцию vkResetCommandPool, но тогда это приведёт в изначальное состояние все буферы.
-	 * О состояниях — ниже. А сейчас применим только флаг перезаписывания.
-	*/ 
-	pool_create_info.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
 	//Создаём пул
 	VkCommandPool pool = VK_NULL_HANDLE;
-	if (vkCreateCommandPool(vkGlobals.device, &pool_create_info, NULL, &pool) != VK_SUCCESS)
+	VkResult res = vkCreateCommandPool(vkGlobals.device, &pool_create_info, NULL, &pool);
+	if (res != VK_SUCCESS)
 		return 4;
-	/* Дальше расскажу немного про функцию vkResetCommandPool, которая перезагрузит весь наш пул со всеми его буферами.
-	 * К нашему пулу могут привязаться и другие ресурсы, кроме команд (а именно ресурсы, которые эти команды используют).
-	 * Поэтому третьим параметром можно поставить флаг VK_COMMAND_POOL_RESET_RELEASE_RESOURCES_BIT, который освободит все
-	 * эти ресурсы.
-	 * Также в этой функции нужны такие аргументы, как устройство и сам пул.
-	*/ 
-	
-	/* Теперь настало время поговорить о самих командных буферах. И так, что это такое? Это буфер, в который мы будем записывать
-	 * различные команды, которые будут говорить, что делать видеокарте. Это могут быть команды отрисовки, команды
-	 * копирования текстур, взаимодействия с шейдером и многие другие. Все функции, которые отвечают за эти команды,
-	 * начинаются на VkCmd. В Vulkan нет ни одной функции, которая выполняла что-то в устройстве без использования командных
-	 * буферов. Для того, чтобы отправить команды в устройство, необходимо их записать в командный буфер. Также, для
-	 * команд предусмотрена синхронизация между хостом (хост — грубо говоря, наш процесс) и устройством, так как все командные буферы
-	 * после отправки в очередь начнут сразу же выполняться, причём, необязательно первый командный буфер и второй отправленный
-	 * будут выполнятся друг за другом — командные буферы абсолютно независимы друг от друга.
-	 * Ещё у команд есть другая особенность: команды хоть и записаны последовательно, отправлены в очередь в том же порядке,
-	 * но необязательно последующая команда начнёт выполнятся только после завершения предыдущей. Это, конечно, может сэкономить
-	 * время, но иногда это может привести к неприятностям, когда не успела выполнится одна команда, к примеру, рисующая кадр,
-	 * как другая команда уже захочет этим кадром воспользоваться для чего-то ещё. Некоторые команды могут вообще запускаться
-	 * не в том порядке, в котором вы записали, и могут также запуститься параллельно друг другу.
-	 * Поэтому в Vulkan есть средства синхронизации, которые в нужный момент устраняют излишнюю "спешку" устройства
-	 * выполнить всё сразу. Но о средствах синхронизации мы поговорим в следующем уроке.
-	 * 
-	 * Существует два уровня командных буферов — первичный и вторичный. Первичный может быть отправлен в очередь для их
-	 * запуска, может запустить вторичный. Вторичный не может быть отпрвлен в очередь, и поэтому может быть запущен либо
-	 * первычным буфером, либо быть настроенным на автоматический перезапуск с помощью renderpass настроек.
-	 * О renderpass будет рассказано позже.
-	 * 
-	 * Также у буферов есть три состояния:
-	 * изначально состояние (initial state) бывает у буферов, которые мы только-что создали или перезапустили.
-	 * записываемое состояние (recording state) у буферов в которые мы начали что-либо записывать (будет расказно ниже).
-	 * запускаемое состояние (executable state:) — мы закончили записывать буфер и он готов 
-	 * к отправке в очередь (если это первичный буфер) или привзяке к первичному (если это вторичный буфер).
-	 * 
-	 * Первым делом выделим один первичный командный буфер. Для этого есть функция vkAllocateCommandBuffers,
-	 * информация о командных буферах отправляется вторым параметром: VkCommandBufferAllocateInfo.
-	*/
 	VkCommandBufferAllocateInfo command_buffers_info;
 	ZM(command_buffers_info);
-	/* pNext зарезервирован для расширений.
-	*/ 
 	command_buffers_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-	/* Далее, настраиваем уровень нашего буфера. Он может быть:
-	 * VK_COMMAND_BUFFER_LEVEL_PRIMARY — первичным
-	 * VK_COMMAND_BUFFER_LEVEL_SECONDARY — вторичным
-	*/
 	command_buffers_info.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY; //первичный буфер
 	command_buffers_info.commandPool = pool; //пул, с которого будем выделять буферы.
 	command_buffers_info.commandBufferCount = 1; //кол-во командных буферов
-	
+
 	//Можно, конечно же, объединять буферы так:
 	VkCommandBuffer command_buffers[1];
-	
+
 	//Выделяем:
 	if (vkAllocateCommandBuffers(vkGlobals.device, &command_buffers_info, command_buffers) != VK_SUCCESS)
 		return 5;
-	
+
 	/* Теперь наш командный буфер имеет изначальное состояние. Для того, чтобы начать в него что-то записывать,
 	 * нужно перевести его в записываемое состояние. Сделаем это с помощью функции vkBeginCommandBuffer.
 	*/
@@ -190,7 +110,7 @@ int main()
 	/* И конечно же, мы должны также отправить структуру о том, как же должен записываться наш буфер.
 	 * pNext должен быть NULL, pInheritanceInfo игнорируется, если это не вторичный буфер, поэтому о значении этой
 	 * структуры с информацией поговорим позже в других уроках.
-	 * 
+	 *
 	 * Теперь о флагах.
 	 * VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT — означает, что записываемый буфер будет использован только один раз
 	 * и будет перезапущен и записан снова между отправками.
@@ -199,7 +119,7 @@ int main()
 	 * VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT — фактически позволяет использовать один и тот же буфер дважды.
 	 * В случае с первичным, мы можем отправить его заново в очередь.
 	 * В случае со вторичным, мы можем его снова перезаписать, даже если он ожидает запуска (т.е. привязан к первичному).
-	*/ 
+	*/
 	begin_info.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
 	//Начнём записывать
 	vkBeginCommandBuffer(command_buffers[0], &begin_info);
@@ -218,19 +138,19 @@ int main()
 	vkEndCommandBuffer(command_buffers[0]);
 	/* Наш буфер имеет запускаемое состояние и он готов к отправке. Отправим его в очередь.
 	 * Для этого надо заполнить структуру:
-	*/ 
+	*/
 	VkSubmitInfo submit_info;
 	ZM(submit_info);
 	submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
 	submit_info.commandBufferCount = 1; //кол-во буферов, которые мы хотим отправить
 	submit_info.pCommandBuffers = command_buffers; //буферы
 	/* Об осталных параметрах раскажется в следующем уроке, так как это связано с синхронизацией.
-	 * 
+	 *
 	 * И так, первый параметр — очередь, в которую мы хотим отправить буферы.
 	 * Второй — кол-во отправляемых структур (VkSubmitInfo).
 	 * Третий — сами структуры.
 	 * Четвёртый — забор. Да, забор. Это метод синхронизации, так что поговорим о нём позже.
-	*/ 
+	*/
 	vkQueueSubmit(queue, 1, &submit_info, VK_NULL_HANDLE);
 	/* После того, как мы отправили команды сразу же начали выполнятся в устройстве. Что касается нашего хоста, то ему
 	 * абсолютно не важно, что сейчас делает устройство, и может занятся другими делами. Но тут возникает проблема —
@@ -270,24 +190,24 @@ void PrepareLayersAndExtensions()
 
 bool InitInstance()
 {
-	VkApplicationInfo app_info; 
+	VkApplicationInfo app_info;
 	ZM(app_info);
 	app_info.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
 	app_info.pApplicationName = app_name;
 	app_info.apiVersion = VK_MAKE_VERSION(1, 0, 5);
 	app_info.applicationVersion = VK_MAKE_VERSION(0, 1, 0);
-	
+
 	VkInstanceCreateInfo instance_info;
 	ZM(instance_info);
 	instance_info.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
 	instance_info.pApplicationInfo = &app_info;
-	
+
 	instance_info.enabledLayerCount = vkGlobals.instance_layers.size();
 	instance_info.ppEnabledLayerNames = vkGlobals.instance_layers.data();
-	
+
 	instance_info.enabledExtensionCount = vkGlobals.instance_extensions.size();
 	instance_info.ppEnabledExtensionNames = vkGlobals.instance_extensions.data();
-	
+
 	if (vkCreateInstance(&instance_info, NULL, &vkGlobals.instance) != VK_SUCCESS)
 		return false;
 	return true;
@@ -300,7 +220,7 @@ bool InitDebug()
 		(PFN_vkCreateDebugReportCallbackEXT) vkGetInstanceProcAddr(vkGlobals.instance, "vkCreateDebugReportCallbackEXT");
 	vkGlobals.fvkDestroyDebugReportCallbackEXT =
 		(PFN_vkDestroyDebugReportCallbackEXT) vkGetInstanceProcAddr(vkGlobals.instance, "vkDestroyDebugReportCallbackEXT");
-	
+
 	//Настройка callback'а
 	VkDebugReportCallbackCreateInfoEXT debug_report_callback_info;
 	ZM(debug_report_callback_info);
@@ -309,7 +229,7 @@ bool InitDebug()
 		VK_DEBUG_REPORT_INFORMATION_BIT_EXT | VK_DEBUG_REPORT_WARNING_BIT_EXT |
 		VK_DEBUG_REPORT_PERFORMANCE_WARNING_BIT_EXT | VK_DEBUG_REPORT_ERROR_BIT_EXT;
 	debug_report_callback_info.pfnCallback = DebugReportCallback;
-	
+
 	//Создание callback
 	if (vkGlobals.fvkCreateDebugReportCallbackEXT(vkGlobals.instance, &debug_report_callback_info,
 		NULL, &vkGlobals.debug_report_callback) != VK_SUCCESS)
@@ -353,30 +273,30 @@ bool InitDevice()
 		std::wcerr << L"Подходящее семейство не найдено.\n";
 		return false;
 	}
-	
+
 	//Индекс нам понадобится для получения очередей.
 	vkGlobals.family_index = valid_family_index;
-	
+
 	//Настройка очередей
 	VkDeviceQueueCreateInfo device_queue_info;
 	ZM(device_queue_info);
 	device_queue_info.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
 	float device_queue_priority[] = {1.0f};
-	device_queue_info.queueCount = 1; 
-	device_queue_info.queueFamilyIndex = valid_family_index; 
+	device_queue_info.queueCount = 1;
+	device_queue_info.queueFamilyIndex = valid_family_index;
 	device_queue_info.pQueuePriorities = device_queue_priority;
-	
+
 	//Настройка девайса
-	VkDeviceCreateInfo device_info; 
+	VkDeviceCreateInfo device_info;
     ZM(device_info);
-	device_info.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO; 
+	device_info.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
 	device_info.queueCreateInfoCount = 1;
 	device_info.pQueueCreateInfos = &device_queue_info;
 	device_info.enabledLayerCount = vkGlobals.device_layers.size();
 	device_info.ppEnabledLayerNames = vkGlobals.device_layers.data();
 	device_info.enabledExtensionCount = vkGlobals.device_extensions.size();
 	device_info.ppEnabledExtensionNames = vkGlobals.device_extensions.data();
-	
+
 	//Создание девайса
 	if (vkCreateDevice(gpu, &device_info, NULL, &vkGlobals.device) != VK_SUCCESS)
 	{
@@ -404,13 +324,13 @@ void DestroyDevice()
 //Debug Report Callback
 VKAPI_ATTR VkBool32 VKAPI_CALL DebugReportCallback(
 	VkDebugReportFlagsEXT flags,
-	VkDebugReportObjectTypeEXT objectType, 
-	uint64_t object, 
-	size_t location, 
-	int32_t messageCode, 
-	const char *pLayerPrefix, 
-	const char *pMessage, 
-	void *pUserData) 
+	VkDebugReportObjectTypeEXT objectType,
+	uint64_t object,
+	size_t location,
+	int32_t messageCode,
+	const char *pLayerPrefix,
+	const char *pMessage,
+	void *pUserData)
 {
 	std::cout << "[" << pLayerPrefix << "] " << pMessage << std::endl;
 	return false;

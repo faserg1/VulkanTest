@@ -26,11 +26,12 @@ int main()
 	Window *w = app.CreateAppWindow(512, 512); //создание окна
 	Render r; //объект, отвечающий за отрисовку
 	Logger logger; //логгер, отвечает за вывод на экран и в файл сообщения Vulkan
+	#ifdef __DEBUG
 	r.EnableDebug(true); //включение отладки
 	//добавление проверочных слоёв
 	r.AddInstanceLayer("VK_LAYER_LUNARG_standard_validation");
 	r.AddDeviceLayer("VK_LAYER_LUNARG_standard_validation");
-
+	#endif // __DEBUG
 	/* Первым делом, что нам нужно: это получить плоскость (surface), в которую мы будем помещать изображение.
 	 * Подробности смотрите внутри функции.
 	*/

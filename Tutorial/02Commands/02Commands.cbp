@@ -14,6 +14,7 @@
 				<Compiler>
 					<Add option="-std=c++11" />
 					<Add option="-g" />
+					<Add option="-D__DEBUG=1" />
 				</Compiler>
 			</Target>
 			<Target title="Release">
