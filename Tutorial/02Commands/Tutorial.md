@@ -62,7 +62,7 @@
 		VkCommandPoolCreateFlags	flags;
 		uint32_t					queueFamilyIndex;
 	} VkCommandPoolCreateInfo;
-	
+
 + `sType` — тип структуры, `VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO`.
 + `pNext` — указатель на ESS (Extension-specific structure, специальная структура расширения) или `nullptr`.
 + `flags` — флаги пула. Напоминаю, что можно оставить 0, если нам не нужен ни один из флагов.
@@ -75,7 +75,7 @@
 		VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT = 0x00000002,
 	} VkCommandPoolCreateFlagBits;
 	typedef VkFlags VkCommandPoolCreateFlags;
-	
+
 + `VK_COMMAND_POOL_CREATE_TRANSIENT_BIT` — указывает, что командные буферы, выделенные с этого пула — кратковременные. Они могут быть сброшены (reset) или освобождены (free) в относительно короткое время.
 + `VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT` — указывает, что командные буферы, выделенные с этого пула могут быть сброшены индивидуально (для перезаписи). В противном случае нужно будет сбрасывать весь пул.
 
@@ -86,7 +86,7 @@
 		const VkCommandPoolCreateInfo* pCreateInfo,
 		const VkAllocationCallbacks* pAllocator,
 		VkCommandPool* pCommandPool);
-		
+
 + `device` — хэндл устройства.
 + `pCreateInfo` — указатель на информацию о командном пуле.
 + `pAllocator` — указатель на структуру `VkAllocationCallbacks`, содержащие адреса функций управления памятью.
@@ -116,7 +116,7 @@
 	typedef enum VkCommandPoolResetFlagBits {
 		VK_COMMAND_POOL_RESET_RELEASE_RESOURCES_BIT = 0x00000001,
 	} VkCommandPoolResetFlagBits;
-	
+
 + `VK_COMMAND_POOL_RESET_RELEASE_RESOURCES_BIT` — освобождает все занятые у системы ресурсы (в противном случае, ресурсы освобождены не будут).
 
 Результаты выполнения:
@@ -131,7 +131,7 @@
 		VkDevice device,
 		VkCommandPool commandPool,
 		const VkAllocationCallbacks* pAllocator);
-		
+
 + `device` — хэндл устройства.
 + `commandPool` — пул, который нужно разрушить.
 + `pAllocator` — указатель на структуру `VkAllocationCallbacks`, содержащие адреса функций управления памятью.
@@ -145,7 +145,7 @@
 	VkCommandPool pool = VK_NULL_HANDLE;
 	if (vkCreateCommandPool(vkGlobals.device, &pool_create_info, NULL, &pool) != VK_SUCCESS)
 		return;
-	
+
 ##Командные буферы
 
 ###Управление командными буферами
@@ -160,9 +160,8 @@
 		VkCommandPool			commandPool;
 		VkCommandBufferLevel	level;
 		uint32_t				commandBufferCount;
-	} VkCommandBufferAllocateInfo;
-	
-	
+	} VkCommandBufferAllocateInfo;	
+
 + `sType` — тип структуры, `VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO`.
 + `pNext` — указатель на ESS.
 + `commandPool` — пул, с которого нужно выделить буферы.
@@ -175,7 +174,7 @@
 		VK_COMMAND_BUFFER_LEVEL_PRIMARY = 0,
 		VK_COMMAND_BUFFER_LEVEL_SECONDARY = 1,
 	} VkCommandBufferLevel;
-	
+
 + `VK_COMMAND_BUFFER_LEVEL_PRIMARY` — первичный командный буфер.
 + `VK_COMMAND_BUFFER_LEVEL_SECONDARY` — вторичный командный буфер.
 
@@ -184,7 +183,7 @@
 		VkDevice device,
 		const VkCommandBufferAllocateInfo* pAllocateInfo,
 		VkCommandBuffer* pCommandBuffers);
-		
+
 + `device` — хэндл устройства.
 + `pAllocateInfo` — указатель на структуру `VkAllocationCallbacks`, содержащие адреса функций управления памятью.
 + `pCommandBuffers` — получаемые хэндлы командных буферов.
@@ -202,7 +201,7 @@
 	VkResult vkResetCommandBuffer(
 		VkCommandBuffer commandBuffer,
 		VkCommandBufferResetFlags flags);
-		
+
 + `commandBuffer` — хэндл командного буфера.
 + `flags` — флаги сброса.
 
@@ -211,7 +210,7 @@
 	typedef enum VkCommandBufferResetFlagBits {
 		VK_COMMAND_BUFFER_RESET_RELEASE_RESOURCES_BIT = 0x00000001,
 	} VkCommandBufferResetFlagBits;
-	
+
 + `VK_COMMAND_BUFFER_RESET_RELEASE_RESOURCES_BIT` — высвобождение всех ресурсов и возвращение их системе.
 
 Буфер при сбросе не должен быть в очереди.
@@ -231,7 +230,7 @@
 		VkCommandPool commandPool,
 		uint32_t commandBufferCount,
 		const VkCommandBuffer* pCommandBuffers);
-		
+
 + `device` — хэндл устройства.
 + `commandPool` — хэндл пула.
 + `commandBufferCount` — количество командных буферов для освобождения.
@@ -249,7 +248,7 @@
 		VkCommandBufferUsageFlags flags;
 		const VkCommandBufferInheritanceInfo* pInheritanceInfo;
 	} VkCommandBufferBeginInfo;
-	
+
 + `sType` — тип структуры, `VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO`.
 + `pNext` — указатель на ESS.
 + `flags` — Флаги записи.
@@ -280,7 +279,6 @@
 		VkQueryPipelineStatisticFlags pipelineStatistics;
 	} VkCommandBufferInheritanceInfo;
 
-
 + `sType` — тип структуры, `VK_STRUCTURE_TYPE_COMMAND_BUFFER_INHERITANCE_INFO`.
 + `pNext` — указатель на ESS.
 + `renderPass` — Если указан флаг `VK_COMMAND_BUFFER_USAGE_RENDER_PASS_CONTINUE_BIT`, то должен быть задан хэндл совместимого прохода отрисовки.
@@ -295,7 +293,7 @@
 	VkResult vkBeginCommandBuffer(
 		VkCommandBuffer commandBuffer,
 		const VkCommandBufferBeginInfo* pBeginInfo);
-	
+
 + `commandBuffer` — хэндл командного буфера, в который будут записываться команды.
 + `pBeginInfo` — указатель на структуру `VkCommandBufferBeginInfo`.
 
@@ -309,7 +307,7 @@
 
 	VkResult vkEndCommandBuffer(
 		VkCommandBuffer commandBuffer);
-		
+	
 + `commandBuffer` — командный буфер, записывание которого необходимо завершить.
 
 Правильное использование:
@@ -326,6 +324,101 @@
 
 ### Отправка командных буферов
 
+Отправка командных буферов происходит партиями (ну или пачками, называйте, как хотите). Одну такую партию описывает следующая структура:
+
+	typedef struct VkSubmitInfo {
+		VkStructureType sType;
+		const void* pNext;
+		uint32_t waitSemaphoreCount;
+		const VkSemaphore* pWaitSemaphores;
+		const VkPipelineStageFlags* pWaitDstStageMask;
+		uint32_t commandBufferCount;
+		const VkCommandBuffer* pCommandBuffers;
+		uint32_t signalSemaphoreCount;
+		const VkSemaphore* pSignalSemaphores;
+	} VkSubmitInfo;
+
++ `sType` — тип структуры `VK_STRUCTURE_TYPE_SUBMIT_INFO`.
++ `pNext` — указатель на ESS.
++ `waitSemaphoreCount` — количество ожидаемых семафоров.
++ `pWaitSemaphores` — семафоры ожидания (массив хэндлов). Количество должно быть  равно `waitSemaphoreCount`.
++ `pWaitDstStageMask` — маски ожидания семафоров (массив масок). Количество должно быть  равно `waitSemaphoreCount`.
++ `commandBufferCount` — количесвто командных буферов в пачке.
++ `pCommandBuffers` — командные буферы (массив хэндлов). Только первичные!
++ `signalSemaphoreCount` — количество сигнальных семафоров.
++ `pSignalSemaphores` — сигнальные семафоры (массив хэндлов). Количество должно быть  равно `signalSemaphoreCount`.
+
+Немного сложного материала, о котором подробнее будет рассказано позже: для каждого семафора существует маска стадий конвейера. Это означает, что прежде чем указанная стадия каждого из буферов начнёт выполнятся, должен быть просигнален соответствующий семафор. Пример: в пачке есть 2 буфера, 2 ожидающих семафора и маски для них. Назовём эти маски "*Стадия 1*" и "*Стадия 2*", а семафоры "*Семафор 1*" и "*Семафор 2*". Тогда, выполнение буферов на "*Стадии 1*" будет приостановлено до сигнала "*Семафора 1*", после сигнала, буферы продолжут работу, и потом, прежде, чем начнётся у буферов "*Стадия 2*" конвейера, они подождут сигнала "*Семафора 2*".
+
+После того, как завершится выполнение всех указанных буферов в пачке, будут просигналены все семафоры, указанные в этой пачке.
+
+Отправлять пачки будет следующая функция:
+
+	VkResult vkQueueSubmit(
+		VkQueue queue,
+		uint32_t submitCount,
+		const VkSubmitInfo* pSubmits,
+		VkFence fence);
+
++ `queue` — очередь, в которую будут посланы все пачки.
++ `submitCount` — количесвто пачек.
++ `pSubmits` — пачки, массив структур `VkSubmitInfo`.
++ `fence` — забор, который будет просигнален, когда все пачки буферов будут выполнены и завершены.
+
+Возвращает функция такие значения:
+
++ `VK_SUCCESS`
++ `VK_ERROR_OUT_OF_HOST_MEMORY`
++ `VK_ERROR_OUT_OF_DEVICE_MEMORY`
++ `VK_ERROR_DEVICE_LOST`
 
 ### Запуск вторичного командного буфера
 
+Для запуска вторичного командного буфера, существует команда запуска, привязанная к следующей функции:
+
+	void vkCmdExecuteCommands(
+		VkCommandBuffer commandBuffer,
+		uint32_t commandBufferCount,
+		const VkCommandBuffer* pCommandBuffers);
+		
++ `commandBuffer` — хэндл первичного командного буфера, из когорого будет вызваны вторичные.
++ `commandBufferCount` — количество вторичных командных буферов.
++ `pCommandBuffers` — хэндлы вторичных командных буферов для запуска.
+
+Как только эта функция была вызвана, то все вторичные буферы, указанные здесь не могут быть использованы в других буферах, если у них не указан флаг `VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT`.
+
+###Пример и заключение
+
+Допустим, выдилим один командный буфер.
+
+	VkCommandBufferAllocateInfo command_buffers_info;
+	ZM(command_buffers_info); //zero memory
+	command_buffers_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+	command_buffers_info.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+	command_buffers_info.commandPool = pool;
+	command_buffers_info.commandBufferCount = 1;
+	
+	VkCommandBuffer command_buffers[1];
+	if (vkAllocateCommandBuffers(vkGlobals.device, &command_buffers_info, command_buffers) != VK_SUCCESS)
+		return;
+		
+Запишем в этот буфер какую-нибудь фиговину:
+
+	VkCommandBufferBeginInfo begin_info;
+	ZM(begin_info); //zero memory
+	begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+	begin_info.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+	vkBeginCommandBuffer(command_buffers[0], &begin_info);
+	//...
+	vkEndCommandBuffer(command_buffers[0]);
+	
+А теперь отправим:
+
+	VkSubmitInfo submit_info;
+	ZM(submit_info); //zero memory
+	submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+	submit_info.commandBufferCount = 1;
+	submit_info.pCommandBuffers = command_buffers; 
+	vkQueueSubmit(queue, 1, &submit_info, VK_NULL_HANDLE);
+	
+Ну вот, собственно, и всё. Подробнее о заборах и семафорах вы узнаете в следующем уроке.
