@@ -18,31 +18,31 @@
 Так что заборы могут пыть полезны в очень редких случаях. Тем не менее, лучше узнать про них подробнее.
 ###Создание и уничтожение забора
 Для создания забора, нужно заполнить следующую структуру.
-
-	typedef struct VkFenceCreateInfo {
-		VkStructureType sType;
-		const void* pNext;
-		VkFenceCreateFlags flags;
-	} VkFenceCreateInfo;
-	
+``` c++
+typedef struct VkFenceCreateInfo {
+	VkStructureType sType;
+	const void* pNext;
+	VkFenceCreateFlags flags;
+} VkFenceCreateInfo;
+```
 + `sType` — тип структуры, в данном случае `VK_STRUCTURE_TYPE_FENCE_CREATE_INFO`.
 + `pNext` — указатель на ESS.
 + `flags` — флаги создания.
 
 Флаги могут быть такими:
-
-	typedef enum VkFenceCreateFlagBits {
-		VK_FENCE_CREATE_SIGNALED_BIT = 0x00000001,
-	} VkFenceCreateFlagBits;
-	
+``` c++
+typedef enum VkFenceCreateFlagBits {
+	VK_FENCE_CREATE_SIGNALED_BIT = 0x00000001,
+} VkFenceCreateFlagBits;
+```
 + `VK_FENCE_CREATE_SIGNALED_BIT` — означает, что забор должен быть в сигнальном состоянии с самого начала. По умолчанию состояние забора — не-сигнальное.
-
-	VkResult vkCreateFence(
-		VkDevice device,
-		const VkFenceCreateInfo* pCreateInfo,
-		const VkAllocationCallbacks* pAllocator,
-		VkFence* pFence);
-		
+``` c++
+VkResult vkCreateFence(
+	VkDevice device,
+	const VkFenceCreateInfo* pCreateInfo,
+	const VkAllocationCallbacks* pAllocator,
+	VkFence* pFence);
+```		
 + `device` — хэндл устройства.
 + `pCreateInfo` — информация о создании забора.
 + `pAllocator` — указатель на структуру `VkAllocationCallbacks`, содержащие адреса функций управления памятью.
@@ -55,12 +55,12 @@
 + `VK_ERROR_OUT_OF_DEVICE_MEMORY`
 
 Разрушить забор может эта функция:
-
-	void vkDestroyFence(
-		VkDevice device,
-		VkFence fence,
-		const VkAllocationCallbacks* pAllocator);
-		
+``` c++
+void vkDestroyFence(
+	VkDevice device,
+	VkFence fence,
+	const VkAllocationCallbacks* pAllocator);
+```	
 + `device` — хэндл устройства.
 + `fence` — хэндл забора, который необходимо разрушить.
 + `pAllocator` — указатель на структуру `VkAllocationCallbacks`, содержащие адреса функций управления памятью.
@@ -69,12 +69,12 @@
 
 ###Сброс забора
 Если один и тот же забор будет использован несколько раз, перед повторным использованием его нужно сбросить. Для этого есть функция:
-
-	VkResult vkResetFences(
-		VkDevice device,
-		uint32_t fenceCount,
-		const VkFence* pFences);
-		
+``` c++
+VkResult vkResetFences(
+	VkDevice device,
+	uint32_t fenceCount,
+	const VkFence* pFences);
+```	
 + `device` — хэндл устройства.
 + `fenceCount` — количество заборов, которые нужно сбросить.
 + `pFences` — хэндлы заборов (массив).
@@ -87,11 +87,11 @@
 
 ###Проверка и ожидание
 После отправки забора можно проверить его текущее состояние (без ожидания):
-
-	VkResult vkGetFenceStatus(
-		VkDevice device,
-		VkFence fence);
-		
+``` c++
+VkResult vkGetFenceStatus(
+	VkDevice device,
+	VkFence fence);
+```
 + `device` — хэндл устройства.
 + `fence` — хэндл забора, который необходимо проверить.
 
@@ -105,14 +105,14 @@
 
 
 А также, можно ждать один и более заборов:
-
-	VkResult vkWaitForFences(
-		VkDevice device,
-		uint32_t fenceCount,
-		const VkFence* pFences,
-		VkBool32 waitAll,
-		uint64_t timeout);
-		
+``` c++
+VkResult vkWaitForFences(
+	VkDevice device,
+	uint32_t fenceCount,
+	const VkFence* pFences,
+	VkBool32 waitAll,
+	uint64_t timeout);
+```	
 + `device` — хэндл устройства.
 + `fenceCount` — количество заборов, которые нужно ждать.
 + `pFences` — хэндлы заборов (массив).
@@ -129,49 +129,49 @@
 
 ###Пример
 Создание забора:
-
-	VkFence fence = VK_NULL_HANDLE;
-	VkFenceCreateInfo fence_create_info;
-	ZM(fence_create_info); //zero memory
-	fence_create_info.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
-	vkCreateFence(device, &fence_create_info, NULL, &fence);
-	
+``` c++
+VkFence fence = VK_NULL_HANDLE;
+VkFenceCreateInfo fence_create_info;
+ZM(fence_create_info); //zero memory
+fence_create_info.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+vkCreateFence(device, &fence_create_info, NULL, &fence);
+```
 Отправка команд вместе с забором:
-
-	//...
-	vkQueueSubmit(queue, 1, &submit_info, fence);
-
+``` c++
+//...
+vkQueueSubmit(queue, 1, &submit_info, fence);
+```
 Ожидание забора:
-
-	vkWaitForFences(device, 1, &fence, false, VK_WHOLE_SIZE);
-	
+``` c++
+vkWaitForFences(device, 1, &fence, false, VK_WHOLE_SIZE);
+```
 ###Гарантии
 Забор даёт гарантию на то, что все команды (или что там ещё...) выолнились. Но забор не даёт гарантий на то, что результат этих команд (а именно память) доступна для хоста. Для такой гарантии нужно применить барьер.
 
 ##Стадии конвейера и зависимости
 ###Стадии конвейера
 Перед тем, как продолжить, сначала стоит пояснить несколько важных вещей. Конвейер, конечно, можно приостановить на определённой команде, но это бы привело к потере производительности, которой можно избежать. Для этого команды можно приостановить на определённой стадии. О том, как это работает и где можно использовать — чуть позже. А пока о стадиях.
-
-	typedef enum VkPipelineStageFlagBits {
-		VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT = 0x00000001,
-		VK_PIPELINE_STAGE_DRAW_INDIRECT_BIT = 0x00000002,
-		VK_PIPELINE_STAGE_VERTEX_INPUT_BIT = 0x00000004,
-		VK_PIPELINE_STAGE_VERTEX_SHADER_BIT = 0x00000008,
-		VK_PIPELINE_STAGE_TESSELLATION_CONTROL_SHADER_BIT = 0x00000010,
-		VK_PIPELINE_STAGE_TESSELLATION_EVALUATION_SHADER_BIT = 0x00000020,
-		VK_PIPELINE_STAGE_GEOMETRY_SHADER_BIT = 0x00000040,
-		VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT = 0x00000080,
-		VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT = 0x00000100,
-		VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT = 0x00000200,
-		VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT = 0x00000400,
-		VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT = 0x00000800,
-		VK_PIPELINE_STAGE_TRANSFER_BIT = 0x00001000,
-		VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT = 0x00002000,
-		VK_PIPELINE_STAGE_HOST_BIT = 0x00004000,
-		VK_PIPELINE_STAGE_ALL_GRAPHICS_BIT = 0x00008000,
-		VK_PIPELINE_STAGE_ALL_COMMANDS_BIT = 0x00010000,
-	} VkPipelineStageFlagBits;
-
+``` c++
+typedef enum VkPipelineStageFlagBits {
+	VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT = 0x00000001,
+	VK_PIPELINE_STAGE_DRAW_INDIRECT_BIT = 0x00000002,
+	VK_PIPELINE_STAGE_VERTEX_INPUT_BIT = 0x00000004,
+	VK_PIPELINE_STAGE_VERTEX_SHADER_BIT = 0x00000008,
+	VK_PIPELINE_STAGE_TESSELLATION_CONTROL_SHADER_BIT = 0x00000010,
+	VK_PIPELINE_STAGE_TESSELLATION_EVALUATION_SHADER_BIT = 0x00000020,
+	VK_PIPELINE_STAGE_GEOMETRY_SHADER_BIT = 0x00000040,
+	VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT = 0x00000080,
+	VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT = 0x00000100,
+	VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT = 0x00000200,
+	VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT = 0x00000400,
+	VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT = 0x00000800,
+	VK_PIPELINE_STAGE_TRANSFER_BIT = 0x00001000,
+	VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT = 0x00002000,
+	VK_PIPELINE_STAGE_HOST_BIT = 0x00004000,
+	VK_PIPELINE_STAGE_ALL_GRAPHICS_BIT = 0x00008000,
+	VK_PIPELINE_STAGE_ALL_COMMANDS_BIT = 0x00010000,
+} VkPipelineStageFlagBits;
+```
 Вышеуказанные значения будут использваться как флаги масок, так как можно указывать несколько значений. А сейчас стоит разобрать каждый флаг подробнее.
 
 + `VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT` — это флаг обозначает стадию конвейера, на которой команды только-только попали в очередь.
