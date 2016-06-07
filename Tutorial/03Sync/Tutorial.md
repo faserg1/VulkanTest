@@ -203,44 +203,37 @@
 + `VK_PIPELINE_STAGE_ALL_GRAPHICS_BIT` — работа всех графических стадий.
 + `VK_PIPELINE_STAGE_ALL_COMMANDS_BIT` — работа всех стадий, поддерживаемых очередью.
 
-**Заметка 1**
+**Заметка 1.**
 К слову, `VK_PIPELINE_STAGE_ALL_GRAPHICS_BIT` и `VK_PIPELINE_STAGE_ALL_COMMANDS_BIT` не одно и тоже, что и `VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT`. А именно, если `VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT` не задерживает другие стадии (так как сам флаг означает только одну), то флаги *All* будут (так как означают несколько стадий). Также, объявляя зависимость памяти, память будет доступна и/или видима на всех стадиях, если поставлен флаг *all*, в то время как флаг конца конвейера этого не означает, так как фактически не содержит в себе рабочую стадию. `VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT` можно использовать, дабы убедится в завершении конвейера.
 
-**Заметка 2**
+**Заметка 2.**
 Если импементация не может обновить состояние события на завершении текущей стадии, имплементация может сделать это по завершению следующей (к примеру, вместо сигнала после вершинного шейдера, сигнал после *color attachment*). Лимит — все графические команды. Также, если имплементация не может ждать определённую стадию, она будет ждать логически более раннюю стадию.
 Также, если имплементация не может включить зависимость выполнения на определённых стадиях, она может включить зависимость дополнительных исходных (*source*) стадий и/или дополнительных конечных (*destenation*) стадий чтобы сохранить зависимость.
 Если в имплементации происходит такое, то это не должно влиять на семантику зависимостей выполнения или памяти или барьеров изображений и буферов.
 
 
 Некоторые стадии поддерживаются только очередями, которые поддерживают определённый набор операции. Ниже прдставлена таблица, что какие флаги поддержки должны быть у очереди, чтобы поддерживать определённый флаг стадии конвейера. Если во второй колонке указано несколько флагов, это значит, что стадия конвейера будет поддерживаться, если есть поддержка одного из указанных флагов очереди.
-<table style="border-collapse: collapse; width: 100%; border: 2px ridge black">
-<tr>
-<td style="border: 2px ridge black">
-<b>Флаг стадии конвейера</b>
-</td>
-<td style="border: 2px ridge black">
-<b>Требуемый флаг возможностей очереди</b>
-</td>
-</tr>
-<tr><td style="border: 2px ridge black">`VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT`</td><td style="border: 2px ridge black">Нет</td></tr>
-<tr><td style="border: 2px ridge black">`VK_PIPELINE_STAGE_DRAW_INDIRECT_BIT`</td><td style="border: 2px ridge black">`VK_QUEUE_GRAPHICS_BIT` или `VK_QUEUE_COMPUTE_BIT`</td></tr>
-<tr><td style="border: 2px ridge black">`VK_PIPELINE_STAGE_VERTEX_INPUT_BIT`</td><td style="border: 2px ridge black">`VK_QUEUE_GRAPHICS_BIT`</td></tr>
-<tr><td style="border: 2px ridge black">`VK_PIPELINE_STAGE_VERTEX_SHADER_BIT`</td><td style="border: 2px ridge black">`VK_QUEUE_GRAPHICS_BIT`</td></tr>
-<tr><td style="border: 2px ridge black">`VK_PIPELINE_STAGE_TESSELLATION_CONTROL_SHADER_BIT`</td><td style="border: 2px ridge black">`VK_QUEUE_GRAPHICS_BIT`</td></tr>
-<tr><td style="border: 2px ridge black">`VK_PIPELINE_STAGE_TESSELLATION_EVALUATION_SHADER_BIT`</td><td style="border: 2px ridge black">`VK_QUEUE_GRAPHICS_BIT`</td></tr>
-<tr><td style="border: 2px ridge black">`VK_PIPELINE_STAGE_GEOMETRY_SHADER_BIT`</td><td style="border: 2px ridge black">`VK_QUEUE_GRAPHICS_BIT`</td></tr>
-<tr><td style="border: 2px ridge black">`VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT`</td><td style="border: 2px ridge black">`VK_QUEUE_GRAPHICS_BIT`</td></tr>
-<tr><td style="border: 2px ridge black">`VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT`</td><td style="border: 2px ridge black">`VK_QUEUE_GRAPHICS_BIT`</td></tr>
-<tr><td style="border: 2px ridge black">`VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT`</td><td style="border: 2px ridge black">`VK_QUEUE_GRAPHICS_BIT`</td></tr>
-<tr><td style="border: 2px ridge black">`VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT`</td><td style="border: 2px ridge black">`VK_QUEUE_GRAPHICS_BIT`</td></tr>
-<tr><td style="border: 2px ridge black">`VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT`</td><td style="border: 2px ridge black">`VK_QUEUE_COMPUTE_BIT`</td></tr>
-<tr><td style="border: 2px ridge black">`VK_PIPELINE_STAGE_TRANSFER_BIT`</td><td style="border: 2px ridge black">`VK_QUEUE_GRAPHICS_BIT`, `VK_QUEUE_COMPUTE_BIT` или `VK_QUEUE_TRANSFER_BIT`</td></tr>
-<tr><td style="border: 2px ridge black">`VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT`</td><td>Нет</td></tr>
-<tr><td style="border: 2px ridge black">`VK_PIPELINE_STAGE_HOST_BIT`</td><td style="border: 2px ridge black">Нет</td></tr>
-<tr><td style="border: 2px ridge black">`VK_PIPELINE_STAGE_ALL_GRAPHICS_BIT`</td><td style="border: 2px ridge black">`VK_QUEUE_GRAPHICS_BIT`</td></tr>
-<tr><td style="border: 2px ridge black">`VK_PIPELINE_STAGE_ALL_COMMANDS_BIT`</td><td style="border: 2px ridge black">Нет</td></tr>
 
-</table>
+|Флаг стадии конвейера | Требуемый флаг возможностей очереди|
+| -------------------- | -----------------------------------|
+|`VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT`|Нет|
+|`VK_PIPELINE_STAGE_DRAW_INDIRECT_BIT`|`VK_QUEUE_GRAPHICS_BIT` или `VK_QUEUE_COMPUTE_BIT`|
+|`VK_PIPELINE_STAGE_VERTEX_INPUT_BIT`|`VK_QUEUE_GRAPHICS_BIT`|
+|`VK_PIPELINE_STAGE_VERTEX_SHADER_BIT`|`VK_QUEUE_GRAPHICS_BIT`|
+|`VK_PIPELINE_STAGE_TESSELLATION_CONTROL_SHADER_BIT`|`VK_QUEUE_GRAPHICS_BIT`|
+|`VK_PIPELINE_STAGE_TESSELLATION_EVALUATION_SHADER_BIT`|`VK_QUEUE_GRAPHICS_BIT`|
+|`VK_PIPELINE_STAGE_GEOMETRY_SHADER_BIT`|`VK_QUEUE_GRAPHICS_BIT`|
+|`VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT`|`VK_QUEUE_GRAPHICS_BIT`|
+|`VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT`|`VK_QUEUE_GRAPHICS_BIT`|
+|`VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT`|`VK_QUEUE_GRAPHICS_BIT`|
+|`VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT`|`VK_QUEUE_GRAPHICS_BIT`|
+|`VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT`|`VK_QUEUE_COMPUTE_BIT`|
+|`VK_PIPELINE_STAGE_TRANSFER_BIT`|`VK_QUEUE_GRAPHICS_BIT`, `VK_QUEUE_COMPUTE_BIT` или `VK_QUEUE_TRANSFER_BIT`|
+|`VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT`|Нет|
+|`VK_PIPELINE_STAGE_HOST_BIT`|Нет|
+|`VK_PIPELINE_STAGE_ALL_GRAPHICS_BIT`|`VK_QUEUE_GRAPHICS_BIT`|
+|`VK_PIPELINE_STAGE_ALL_COMMANDS_BIT`|Нет|
+
 ###Зависимости
 Команды синхронизации позволяют указать **явную** (*explicit*) зависимость между двумя наборами (set) команд, где второй набор команд зависит от первого. Наборами могут быть:
 + Первый набор: перед `vkCmdSetEvent`.<br>
