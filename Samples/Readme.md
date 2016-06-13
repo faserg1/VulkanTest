@@ -1,6 +1,10 @@
 # Vulkan Samples
-![VulkanLogo](https://www.khronos.org/assets/khronos_20/css/images/Vulkan_500px_Mar15.png "Логотип Vulkan API")
+![VulkanLogo](../images/vulkan_logo.png "Р›РѕРіРѕС‚РёРї Vulkan API")
 
-Описание.
+[РќР°Р·Р°Рґ][Back]
+
+РћРїРёСЃР°РЅРёРµ.
 ----------------
-Здесь будут находится разные примеры использования Vulkan API.
+Р—РґРµСЃСЊ Р±СѓРґСѓС‚ РЅР°С…РѕРґРёС‚СЃСЏ СЂР°Р·РЅС‹Рµ РїСЂРёРјРµСЂС‹ РёСЃРїРѕР»СЊР·РѕРІР°РЅРёСЏ Vulkan API.
+
+[Back]: ../Readme.md "РќР°Р·Р°Рґ"

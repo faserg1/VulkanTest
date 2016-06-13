@@ -1,5 +1,8 @@
 # Vulkan Tutorial
-![VulkanLogo](images/vulkan_logo.png "Логотип Vulkan API")
+![VulkanLogo](../images/vulkan_logo.png "Логотип Vulkan API")
+
+[Назад][Back]
+
 ## Описание
 
 **Vulkan Tutorial** — уроки по Vulkan API, созданные на основе уроков Niko Kauppi: [YouTube][NikoYouTube], [GitHub][NikoGitHub], переведённые на русский. А также добавлена дополнительная информация из [спецификации Vulkan API + WSI][VulkanSpecWSI]. Кстати, уже есть [перевод спецификации][SpecTranslate].
@@ -84,7 +87,6 @@ Code::Blocks
 С помощью [Я.Денег](https://money.yandex.ru/to/410012557544062).
 Группа [DARTeam][DARTeamVK].
 
-
 [VulkanSpecWSI]: https://www.khronos.org/registry/vulkan/specs/1.0-wsi_extensions/pdf/vkspec.pdf "Vulkan API + WSI Specification"
 [NikoGitHub]: https://github.com/Niko40/Vulkan-API-Tutorials "Репозиторий уроков Niko Kauppi на GitHub"
 [NikoYouTube]: https://www.youtube.com/playlist?list=PLUXvZMiAqNbK8jd7s52BIDtCbZnKNGp0P "Плейлист уроков Niko Kauppi на YouTube"
@@ -95,6 +97,8 @@ Code::Blocks
 [DARTeamVK]: http://vk.com/dev.ani.resu.team "Группа в ВКонтакте"
 [SpecTranslate]: http://vbomesh.blogspot.ru/p/vulkan-api.html "Перевод спецификации Vulkan API"
 [VulkanDescriptionHabr]: http://habr.ru/p/283490/
+
+[Back]: ../Readme.md "Назад"
 
 [T00]: ./00Device/Tutorial.md "Перейти к уроку"
 [T01]: ./01LayersAndExtensions/Tutorial.md "Перейти к уроку"
