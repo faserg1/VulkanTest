@@ -3,6 +3,7 @@
 
 #include <QMainWindow>
 #include "nativehandle.h"
+
 namespace Ui {
 class MainWindow;
 }
@@ -15,10 +16,9 @@ class MainWindow : public QMainWindow
 public:
     explicit MainWindow(QWidget *parent = 0);
     ~MainWindow();
-
+	NativeHandle GetWindowHandle(); //Получение родных хэндлов окна
 private:
     Ui::MainWindow *ui;
-    NativeHandle GetWindowHandle(); //Получение родных хэндлов окна
 };
 
 #endif // MAINWINDOW_H

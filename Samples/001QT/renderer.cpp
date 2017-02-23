@@ -18,6 +18,16 @@ class RendererImp
 	PFN_vkCreateDebugReportCallbackEXT fvkCreateDebugReportCallbackEXT;
 	PFN_vkDestroyDebugReportCallbackEXT fvkDestroyDebugReportCallbackEXT;
 
+	struct
+	{
+		VkSurfaceKHR surface;
+		VkSurfaceCapabilitiesKHR surface_capabilities;
+		std::vector<VkSurfaceFormatKHR> available_formats;
+		std::vector<VkPresentModeKHR> present_modes;
+	} surface_data;
+
+	VkSwapchainKHR swapchain;
+
 	static VKAPI_ATTR VkBool32 VKAPI_CALL
 		DebugReportCallback(VkDebugReportFlagsEXT flags, VkDebugReportObjectTypeEXT,
 		uint64_t, size_t, int32_t,
@@ -49,8 +59,9 @@ class RendererImp
 public:
 	RendererImp()
 	{
-		vk_inst = nullptr;
-		vk_dev = nullptr;
+		vk_inst = VK_NULL_HANDLE;
+		vk_dev = VK_NULL_HANDLE;
+		swapchain = VK_NULL_HANDLE;
 		gpu_count = 0;
 	}
 
@@ -288,6 +299,10 @@ public:
 		if (vkEnumeratePhysicalDevices(vk_inst, &gpu_count, gpu_list.data()) != VK_SUCCESS)
 			return false;
 
+		if (!CheckDeviceExtension(0, NULL, VK_KHR_SWAPCHAIN_EXTENSION_NAME))
+			return false;
+		AddDeviceExtension(VK_KHR_SWAPCHAIN_EXTENSION_NAME);
+
 		VkDeviceCreateInfo dev_info;
 		memset(&dev_info, 0, sizeof(dev_info));
 
@@ -348,19 +363,162 @@ public:
 		if (vk_dev)
 			vkDestroyDevice(vk_dev, nullptr);
 	}
+
+	bool createSurface(NativeHandle *handle)
+	{
+		VkResult res = VK_RESULT_MAX_ENUM;
+		#if defined(VK_USE_PLATFORM_WIN32_KHR)
+		VkWin32SurfaceCreateInfoKHR surface_info;
+		memset(&surface_info, 0, sizeof(surface_info));
+		surface_info.sType = VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR;
+		surface_info.hinstance = handle->hInst;
+		surface_info.hwnd = handle->hWnd;
+		res = vkCreateWin32SurfaceKHR(vk_inst,
+			&surface_info, nullptr, &surface_data.surface);
+		#endif
+		if (res != VK_SUCCESS)
+			return false;
+		return true;
+	}
+
+	void destroySurface()
+	{
+		vkDestroySurfaceKHR(vk_inst, surface_data.surface, nullptr);
+	}
+
+	bool createSwapchain()
+	{
+		VkPhysicalDevice gpu = gpu_list[0];
+		if (vkGetPhysicalDeviceSurfaceCapabilitiesKHR(gpu,
+			surface_data.surface, &surface_data.surface_capabilities) != VK_SUCCESS)
+			return false;
+		uint32_t formats_count = 0;
+		if (vkGetPhysicalDeviceSurfaceFormatsKHR(gpu,
+			surface_data.surface, &formats_count, NULL) != VK_SUCCESS)
+			return false;
+		surface_data.available_formats.resize(formats_count);
+		if (vkGetPhysicalDeviceSurfaceFormatsKHR(gpu, surface_data.surface,
+			&formats_count, surface_data.available_formats.data()) != VK_SUCCESS)
+			return false;
+		uint32_t present_modes_count = 0;
+		if (vkGetPhysicalDeviceSurfacePresentModesKHR(gpu,
+			surface_data.surface, &present_modes_count, NULL) != VK_SUCCESS)
+			return false;
+		surface_data.present_modes.resize(present_modes_count);
+		if (vkGetPhysicalDeviceSurfacePresentModesKHR(gpu, surface_data.surface,
+			&present_modes_count, surface_data.present_modes.data()) != VK_SUCCESS)
+			return false;
+
+		VkSurfaceCapabilitiesKHR &sc = surface_data.surface_capabilities;
+		if (sc.maxImageCount < 1)
+				return false;
+
+		uint32_t images_count = sc.minImageCount + 1;
+
+		if (images_count > sc.maxImageCount)
+			images_count = sc.maxImageCount;
+
+		VkSurfaceFormatKHR surface_format =
+			{VK_FORMAT_UNDEFINED,
+			 VK_COLORSPACE_SRGB_NONLINEAR_KHR};
+
+		if (surface_data.available_formats.size() == 1
+			&& surface_data.available_formats[0].format == VK_FORMAT_UNDEFINED)
+		{
+			surface_format = {VK_FORMAT_R8G8B8A8_UNORM,
+							  VK_COLORSPACE_SRGB_NONLINEAR_KHR};
+		}
+		for (size_t i = 0; i < surface_data.available_formats.size(); i++)
+		{
+			if (surface_data.available_formats[i].format == VK_FORMAT_R8G8B8A8_UNORM)
+				surface_format = surface_data.available_formats[i];
+		}
+		if (surface_format.format == VK_FORMAT_UNDEFINED)
+			surface_format = surface_data.available_formats[0];
+
+		VkExtent2D sc_extent;
+		//w->GetWindowSize(sc_extent.width, sc_extent.height);
+		if (sc.currentExtent.height == (uint32_t) -1
+			&& sc.currentExtent.width == (uint32_t) -1)
+		{
+			if (sc_extent.height > sc.maxImageExtent.height)
+				sc_extent.height = sc.maxImageExtent.height;
+			if (sc_extent.width > sc.maxImageExtent.width)
+				sc_extent.width = sc.maxImageExtent.width;
+		}
+		else
+		{
+			sc_extent.height = sc.currentExtent.height;
+			sc_extent.width = sc.currentExtent.width;
+		}
+		VkImageUsageFlags flags = 0;
+		if (sc.supportedUsageFlags & VK_IMAGE_USAGE_TRANSFER_DST_BIT)
+			flags = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
+		else
+			flags = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+		VkSurfaceTransformFlagBitsKHR transform = VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR;
+		if (!(sc.supportedTransforms & VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR))
+			return false;
+		VkPresentModeKHR pm = VK_PRESENT_MODE_IMMEDIATE_KHR;
+		for (size_t i = 0; i < surface_data.present_modes.size(); i++)
+		{
+			if (surface_data.present_modes[i] == VK_PRESENT_MODE_MAILBOX_KHR)
+			{
+				pm = VK_PRESENT_MODE_MAILBOX_KHR;
+				break;
+			}
+			if (surface_data.present_modes[i] == VK_PRESENT_MODE_FIFO_KHR)
+			{
+				if (pm != VK_PRESENT_MODE_FIFO_RELAXED_KHR)
+					pm = VK_PRESENT_MODE_FIFO_KHR;
+			}
+			if (surface_data.present_modes[i] == VK_PRESENT_MODE_FIFO_RELAXED_KHR)
+			{
+				pm = VK_PRESENT_MODE_FIFO_KHR;
+			}
+		}
+		VkCompositeAlphaFlagBitsKHR alpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
+		VkSwapchainCreateInfoKHR swapchain_create_info;
+		memset(&swapchain_create_info, 0, sizeof(swapchain_create_info));
+		swapchain_create_info.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
+		swapchain_create_info.imageExtent = sc_extent;
+		swapchain_create_info.imageFormat = surface_format.format;
+		swapchain_create_info.imageColorSpace = surface_format.colorSpace;
+		swapchain_create_info.imageUsage = flags;
+		swapchain_create_info.presentMode = pm;
+		swapchain_create_info.preTransform = transform;
+		swapchain_create_info.minImageCount = images_count;
+		swapchain_create_info.surface = surface_data.surface;
+		swapchain_create_info.oldSwapchain = swapchain;
+		swapchain_create_info.imageArrayLayers = 1;
+		swapchain_create_info.compositeAlpha = alpha;
+		swapchain_create_info.clipped = VK_TRUE;
+		swapchain_create_info.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
+		if (vkCreateSwapchainKHR(vk_dev,
+			&swapchain_create_info, nullptr, &swapchain) != VK_SUCCESS)
+			return false;
+		return true;
+	}
+
+	void destroySwapchain()
+	{
+		vkDestroySwapchainKHR(vk_dev, swapchain, nullptr);
+	}
 };
 
 Renderer::Renderer() : imp(nullptr),
 	native_handle(nullptr)
 {
 	this->imp = new RendererImp;
-    this->native_handle = new NativeHandle;
+	this->native_handle = new NativeHandle;
 }
 
 Renderer::~Renderer()
 {
     if (this->native_handle)
         delete this->native_handle;
+	imp->destroySwapchain();
+	imp->destroySurface();
 	#ifdef QT_DEBUG
 	imp->detachLoggin();
 	#endif
@@ -376,16 +534,25 @@ void Renderer::load()
 	#endif
 
 	if (!imp->initInstance())
-        qCritical() << "Cannot create Vulkan Instance.\n";
-    else
-        qInfo() << "Created Vulkan!\n";
+		qCritical() << "Cannot create Vulkan Instance.\n";
+	else
+		qInfo() << "Created Vulkan!\n";
+
 	#ifdef QT_DEBUG
 	imp->attachLogging();
 	#endif
-    if (!imp->createDevice())
-        qCritical() << "Cannot create Vulkan Device.\n";
-    else
-        qInfo() << "Vulkan have his own device...\n";
+
+	imp->createSurface(native_handle);
+
+	if (!imp->createDevice())
+		qCritical() << "Cannot create Vulkan Device.\n";
+	else
+		qInfo() << "Vulkan have his own device.\n";
+
+	if (!imp->createSwapchain())
+		qCritical() << "Cannot create Vulkan Swapchain.\n";
+	else
+		qInfo() << "Swapchain created.\n";
 }
 
 void Renderer::set_window(NativeHandle &nhandle)
