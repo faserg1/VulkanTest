@@ -12,6 +12,7 @@ int main(int argc, char *argv[])
 	NativeHandle h = w.GetWindowHandle();
 	robj.set_window(h);
 	robj.load();
+	robj.startRender();
 
     return a.exec();
 }
